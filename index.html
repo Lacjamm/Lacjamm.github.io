@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lacjamm Games</title>
+  <meta name="description" content="Games n stuff by Lacjamm — play free browser games.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
+  <style>
+    :root {
+      --bg: #0b0d14;
+      --bg-card: #141828;
+      --bg-card-hover: #1a2036;
+      --text: #e8eaf2;
+      --text-dim: #9aa1b8;
+      --accent: #7c5cff;
+      --accent2: #00e5a0;
+      --accent3: #ff5c7c;
+      --border: #262c44;
+      --radius: 14px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124, 92, 255, 0.18), transparent),
+        radial-gradient(ellipse 60% 40% at 90% 110%, rgba(0, 229, 160, 0.08), transparent);
+      background-attachment: fixed;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+    header { text-align: center; padding: 72px 0 40px; }
+    .logo {
+      font-size: clamp(2.4rem, 7vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .tagline { color: var(--text-dim); font-size: 1.15rem; margin-top: 8px; }
+
+    .games { display: grid; gap: 24px; padding-bottom: 40px; }
+    @media (min-width: 720px) { .games { grid-template-columns: 1fr 1fr; } }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .card:hover { transform: translateY(-3px); border-color: var(--accent); background: var(--bg-card-hover); }
+    .card.wide { grid-column: 1 / -1; }
+
+    .card-emoji { font-size: 2.4rem; line-height: 1; }
+    .card h2 { font-size: 1.45rem; letter-spacing: -0.01em; }
+    .card p { color: var(--text-dim); flex-grow: 1; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+    .btn {
+      display: inline-block;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: filter 0.15s ease;
+    }
+    .btn:hover { filter: brightness(1.15); }
+    .btn-play { background: linear-gradient(90deg, var(--accent), #9d7bff); color: #fff; }
+    .btn-src { border: 1px solid var(--border); color: var(--text-dim); }
+    .btn-src:hover { color: var(--text); }
+
+    .soon {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent3);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      padding: 32px 0 48px;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent2); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <h1 class="logo">Lacjamm Games</h1>
+    <p class="tagline">Games n stuff by me! Free to play, right in your browser.</p>
+  </header>
+
+  <main class="wrap games">
+    <section class="card wide">
+      <span class="card-emoji">🏎️</span>
+      <h2>Chicane: Full Throttle 3D</h2>
+      <p>
+        Open-road hypercar racing in full 3D. Put your foot down and thread the needle
+        through traffic and chicanes at ludicrous speed. Built with Godot 4.3 and
+        exported to run right in your browser.
+      </p>
+      <div class="tags">
+        <span class="tag">3D Racing</span>
+        <span class="tag">Godot 4.3</span>
+        <span class="tag">GDScript</span>
+      </div>
+      <div class="actions">
+        <a class="btn btn-play" href="https://lacjamm.github.io/chicane/">▶ Play now</a>
+        <a class="btn btn-src" href="https://github.com/Lacjamm/chicane">Source on GitHub</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🔥</span>
+      <h2>Infernal Velocity</h2>
+      <p>
+        A retro raycaster shooter in the spirit of the 90s classics. Blast through
+        demon-infested levels with an arsenal of five weapons — from the Mercy Revolver
+        to the Scattercannon — hunt down secrets, and chase that S-rank. Your progress
+        saves in the browser. Written from scratch in pure JavaScript on a single canvas.
+      </p>
+      <div class="tags">
+        <span class="tag">Retro FPS</span>
+        <span class="tag">Raycaster</span>
+        <span class="tag">JavaScript</span>
+      </div>
+      <div class="actions">
+        <a class="btn btn-play" href="./infernal-velocity/">▶ Play now</a>
+        <a class="btn btn-src" href="https://github.com/Lacjamm/DadsTest">Source on GitHub</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🏝️</span>
+      <h2>Sky Island</h2>
+      <p>
+        A Godot adventure set on a floating island in the sky. Still early in
+        development — no playable build yet, but watch this space.
+      </p>
+      <div class="tags">
+        <span class="tag">Adventure</span>
+        <span class="tag">Godot</span>
+      </div>
+      <div class="actions">
+        <span class="soon">Coming soon</span>
+        <a class="btn btn-src" href="https://github.com/Lacjamm/godot.island">Source on GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>Made by <a href="https://github.com/Lacjamm">Lacjamm</a> · Hosted on GitHub Pages</p>
+  </footer>
+</body>
+</html>
