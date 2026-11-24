@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monster Maker Mayhem DX</title>
+  <style>
+    :root {
+      --bg: #111321;
+      --panel: #1b1d30;
+      --panel2: #252845;
+      --text: #f8f7ff;
+      --muted: #b8b6d4;
+      --line: rgba(255,255,255,.14);
+      --accent: #72ffb6;
+      --accent2: #ffcc5c;
+      --danger: #ff6b7a;
+      --blue: #78b7ff;
+      --purple: #c78bff;
+      --shadow: 0 18px 55px rgba(0,0,0,.38);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 15%, rgba(114,255,182,.18), transparent 35%),
+        radial-gradient(circle at 82% 20%, rgba(199,139,255,.18), transparent 34%),
+        radial-gradient(circle at 50% 100%, rgba(255,204,92,.13), transparent 42%),
+        linear-gradient(180deg, #0d1020 0%, #101422 48%, #0b0e19 100%);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      position: relative;
+      overflow-x: hidden;
+      isolation: isolate;
+    }
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      inset: auto;
+      width: 42vw;
+      height: 42vw;
+      max-width: 520px;
+      max-height: 520px;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: .18;
+      pointer-events: none;
+      z-index: -1;
+      animation: floatBlob 18s ease-in-out infinite;
+    }
+    body::before {
+      top: -10vw;
+      left: -6vw;
+      background: radial-gradient(circle at 30% 30%, rgba(114,255,182,.65), rgba(114,255,182,0) 70%);
+    }
+    body::after {
+      right: -8vw;
+      bottom: -14vw;
+      background: radial-gradient(circle at 40% 35%, rgba(199,139,255,.62), rgba(199,139,255,0) 72%);
+      animation-delay: -7s;
+    }
+    @keyframes floatBlob {
+      0%,100% { transform: translate3d(0,0,0) scale(1); }
+      50% { transform: translate3d(18px,-20px,0) scale(1.08); }
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 355px minmax(0, 1fr);
+      gap: 18px;
+      min-height: 100vh;
+      padding: 18px;
+    }
+    .panel, .stage {
+      border: 1px solid rgba(255,255,255,.11);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0) 22%),
+        linear-gradient(180deg, rgba(27,29,48,.92), rgba(14,16,28,.97));
+      border-radius: 24px;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.06), inset 0 -1px 0 rgba(0,0,0,.25);
+      backdrop-filter: blur(14px) saturate(1.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .panel::before, .stage::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.06), transparent 24%, transparent 70%, rgba(255,255,255,.03));
+      pointer-events: none;
+    }
+    .panel {
+      padding: 18px;
+      overflow: auto;
+      max-height: calc(100vh - 36px);
+      scrollbar-color: rgba(255,255,255,.22) transparent;
+      scrollbar-width: thin;
+    }
+    .panel::-webkit-scrollbar { width: 10px; }
+    .panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 999px; }
+    .panel::-webkit-scrollbar-track { background: transparent; }
+    .stage {
+      position: relative;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.8rem; line-height: 1.05; letter-spacing: -.04em; background: linear-gradient(135deg, #ffffff 0%, #d8e5ff 40%, #72ffb6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    h2 { margin: 18px 0 8px; font-size: .9rem; color: var(--accent); text-transform: uppercase; letter-spacing: .09em; }
+    .subtitle { margin: 0 0 12px; color: var(--muted); font-size: .93rem; line-height: 1.35; }
+    label { display: block; margin-top: 10px; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; }
+    select, input {
+      width: 100%;
+      margin-top: 5px;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(16,18,35,.98), rgba(10,12,25,.96));
+      color: var(--text);
+      font: inherit;
+      outline: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 6px 18px rgba(0,0,0,.16);
+    }
+    select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(114,255,182,.14), inset 0 1px 0 rgba(255,255,255,.05), 0 8px 22px rgba(0,0,0,.18); }
+    button {
+      appearance: none;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: #101223;
+      background: linear-gradient(180deg, #9affce 0%, #72ffb6 55%, #52d493 100%);
+      font: 900 .92rem/1 ui-sans-serif, system-ui, sans-serif;
+      transition: transform .08s ease, filter .12s ease, opacity .12s ease, box-shadow .18s ease;
+      box-shadow: 0 8px 20px rgba(82,212,147,.22), inset 0 1px 0 rgba(255,255,255,.45);
+    }
+    button:hover { filter: brightness(1.07); transform: translateY(-2px); box-shadow: 0 12px 28px rgba(82,212,147,.28), inset 0 1px 0 rgba(255,255,255,.5); }
+    button:active { transform: translateY(1px); box-shadow: 0 5px 14px rgba(82,212,147,.18), inset 0 1px 0 rgba(255,255,255,.36); }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .secondary { background: linear-gradient(180deg, rgba(46,49,80,.96), rgba(29,32,55,.98)); color: var(--text); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 20px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.06); }
+    .warning { background: linear-gradient(180deg, #ffe09a, #ffcc5c 55%, #dfaa2d); }
+    .danger { background: linear-gradient(180deg, #ff8f98, #ff6b7a 55%, #df4d5c); color: #fff; box-shadow: 0 8px 20px rgba(255,107,122,.22), inset 0 1px 0 rgba(255,255,255,.26); }
+    .purple { background: linear-gradient(180deg, #dfbbff, #c78bff 55%, #a763ea); color: #101223; }
+    .boss { background: linear-gradient(135deg, #ff6b7a, #c78bff 70%); color: #fff; box-shadow: 0 12px 26px rgba(199,139,255,.18); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pillbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 12px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; border-radius: 999px; background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.1); font-size: .82rem; font-weight: 900; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+    .note { color: var(--muted); font-size: .78rem; line-height: 1.35; margin-top: 7px; }
+    .stats, .log {
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.045));
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 16px;
+      padding: 10px;
+      color: var(--muted);
+      font-size: .86rem;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .stats { margin-top: 12px; }
+    .statline { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .statline:last-child { border-bottom: 0; }
+    .statline strong { color: var(--text); }
+    .shop-row, .mission-card, .record-card {
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.062), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 18px rgba(0,0,0,.12);
+    }
+    .shop-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 8px; margin-bottom: 8px; }
+    .shop-row span, .mission-card span, .record-card span { color: var(--muted); font-size: .78rem; }
+    .mission-grid, .record-grid { display: grid; gap: 8px; }
+    .mission-card { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 9px; padding: 9px; }
+    .mission-card.done { background: linear-gradient(180deg, rgba(114,255,182,.16), rgba(114,255,182,.08)); border-color: rgba(114,255,182,.3); box-shadow: 0 10px 22px rgba(114,255,182,.08), inset 0 1px 0 rgba(255,255,255,.08); }
+    .mission-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: rgba(255,255,255,.08); font-size: 1.15rem; }
+    .mission-card strong { display: block; color: var(--text); font-size: .86rem; }
+    .mission-reward { color: var(--accent2); font-weight: 900; font-size: .78rem; white-space: nowrap; }
+    .record-grid { grid-template-columns: 1fr 1fr; }
+    .record-card { padding: 8px; font-size: .78rem; }
+    .record-card strong { display: block; color: var(--text); font-size: .9rem; }
+    .log { min-height: 92px; max-height: 160px; overflow: auto; }
+    .log p { margin: 0 0 8px; }
+    .hud { display: grid; grid-template-columns: minmax(180px,1.35fr) repeat(7,minmax(70px,.62fr)); gap: 8px; }
+    .hud-card { min-height: 58px; padding: 10px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.12); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(0,0,0,.12); }
+    .hud-card .label { margin-bottom: 5px; color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+    .hud-card .value { font-weight: 950; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar { height: 10px; width: 100%; margin-top: 7px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.12); box-shadow: inset 0 1px 2px rgba(0,0,0,.25); }
+    .bar span { display: block; height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(90deg, #72ffb6, #78b7ff 65%, #c78bff); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 14px rgba(114,255,182,.18); }
+    #game { width: 100%; max-height: calc(100vh - 186px); aspect-ratio: 16/10; border-radius: 22px; background: radial-gradient(circle at 50% 20%, rgba(255,255,255,.06), rgba(255,255,255,0) 35%), #111428; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 44px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.05), inset 0 0 0 2px rgba(0,0,0,.24); }
+    .help { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: .86rem; padding-bottom: 2px; }
+    .kbd { display: inline-flex; min-width: 26px; justify-content: center; padding: 3px 7px; border-radius: 8px; color: var(--text); background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); border: 1px solid rgba(255,255,255,.14); font-weight: 900; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+    .toast { position: absolute; left: 50%; top: 86px; transform: translateX(-50%); z-index: 10; pointer-events: none; opacity: 0; padding: 12px 16px; border-radius: 999px; background: linear-gradient(180deg, rgba(24,27,46,.95), rgba(16,18,35,.94)); border: 1px solid rgba(255,255,255,.2); box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.08); font-weight: 950; transition: opacity .2s ease, transform .2s ease; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+    @media (max-width: 1120px) { .app { grid-template-columns: 1fr; } .panel { max-height: none; } .hud { grid-template-columns: repeat(4,1fr); } #game { max-height: none; } }
+    @media (max-width: 640px) { .app { padding: 10px; gap: 10px; } .panel,.stage { border-radius: 16px; } .row,.button-grid,.hud,.record-grid { grid-template-columns: 1fr; } h1 { font-size: 1.35rem; } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <h1>Monster Maker Mayhem DX</h1>
+    <p class="subtitle">Now with upgraded neon visuals, dash, combos, powerups, difficulty, medals, missions, high scores, and a boss who takes itself far too seriously.</p>
+    <div class="pillbar">
+      <div class="pill">🪙 Coins: <span id="coinCount">0</span></div>
+      <div class="pill">🧪 Level: <span id="labLevel">1</span></div>
+      <div class="pill">🏆 Best: <span id="bestText">--</span></div>
+    </div>
+
+    <label for="nameInput">Creature name</label>
+    <input id="nameInput" maxlength="24" value="Blorbo" />
+
+    <label for="difficultySelect">Mayhem level</label>
+    <select id="difficultySelect">
+      <option value="chill">🌱 Chill Lab</option>
+      <option value="normal">🧪 Normal Mayhem</option>
+      <option value="spicy">🌶️ Spicy Chaos</option>
+      <option value="nightmare">💀 Nightmare Goo</option>
+    </select>
+    <div class="note">Harder levels make enemies meaner but pay better rewards.</div>
+
+    <div class="row">
+      <div><label for="headSelect">Head</label><select id="headSelect"></select></div>
+      <div><label for="bodySelect">Body</label><select id="bodySelect"></select></div>
+    </div>
+    <div class="row">
+      <div><label for="legsSelect">Legs</label><select id="legsSelect"></select></div>
+      <div><label for="armsSelect">Arms</label><select id="armsSelect"></select></div>
+    </div>
+    <div class="row">
+      <div><label for="powerSelect">Power</label><select id="powerSelect"></select></div>
+      <div><label for="personalitySelect">Personality</label><select id="personalitySelect"></select></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="randomizeBtn" class="warning">🎲 Random Mutant</button>
+      <button id="applyBtn" class="secondary">🧬 Apply</button>
+    </div>
+    <div id="statsBox" class="stats"></div>
+
+    <h2>Test rooms</h2>
+    <div class="button-grid">
+      <button class="roomBtn" data-room="obstacle">⚠️ Obstacle</button>
+      <button class="roomBtn" data-room="battle">⚔️ Battle</button>
+      <button class="roomBtn" data-room="puzzle">🧩 Puzzle</button>
+      <button class="roomBtn" data-room="destruction">💥 Destruction</button>
+      <button class="roomBtn" data-room="survival">🌊 Survival</button>
+      <button class="roomBtn boss" data-room="boss">👑 Boss Lab</button>
+      <button class="roomBtn secondary" data-room="sandbox">🧸 Sandbox</button>
+      <button id="returnBtn" class="secondary">🏠 Return</button>
+    </div>
+    <div class="row" style="margin-top:8px"><button id="resetSaveBtn" class="danger">♻️ Reset Save</button><button id="muteBtn" class="secondary">🔊 Sound</button></div>
+
+    <h2>Upgrade shop</h2>
+    <div id="shop"></div>
+    <div class="note">Everything saves in your browser, including best scores and unlocked missions.</div>
+
+    <h2>Missions</h2>
+    <div id="missionPanel" class="mission-grid"></div>
+
+    <h2>Best scores</h2>
+    <div id="recordPanel" class="record-grid"></div>
+
+    <h2>Lab log</h2>
+    <div id="labLog" class="log" aria-live="polite"></div>
+  </aside>
+
+  <main class="stage">
+    <div class="hud">
+      <div class="hud-card"><div class="label">Objective</div><div id="objectiveText" class="value">Build a monster, then pick a test room.</div></div>
+      <div class="hud-card"><div class="label">Health</div><div id="hpText" class="value">100 / 100</div><div class="bar"><span id="hpBar"></span></div></div>
+      <div class="hud-card"><div class="label">Score</div><div id="scoreText" class="value">0</div></div>
+      <div class="hud-card"><div class="label">Combo</div><div id="comboText" class="value">--</div></div>
+      <div class="hud-card"><div class="label">Timer</div><div id="timerText" class="value">--</div></div>
+      <div class="hud-card"><div class="label">Attack</div><div id="attackText" class="value">Ready</div></div>
+      <div class="hud-card"><div class="label">Dash</div><div id="dashText" class="value">Ready</div></div>
+      <div class="hud-card"><div class="label">Power</div><div id="powerText" class="value">Ready</div></div>
+    </div>
+    <canvas id="game" width="960" height="600" tabindex="0" role="img" aria-label="Monster Maker Mayhem DX game canvas"></canvas>
+    <div class="help">
+      <span><span class="kbd">WASD</span> / <span class="kbd">Arrows</span> move</span>
+      <span><span class="kbd">Space</span> or click attack</span>
+      <span><span class="kbd">E</span> power</span>
+      <span><span class="kbd">Q</span> / <span class="kbd">Shift</span> dash</span>
+      <span><span class="kbd">P</span> pause</span>
+      <span><span class="kbd">R</span> randomize</span>
+      <span><span class="kbd">Esc</span> return</span>
+    </div>
+    <div id="toast" class="toast"></div>
+  </main>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const TAU = Math.PI * 2;
+  const STORAGE_KEY = 'monsterMakerMayhemDX_v1';
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    coinCount: $('coinCount'), labLevel: $('labLevel'), bestText: $('bestText'),
+    name: $('nameInput'), difficulty: $('difficultySelect'),
+    head: $('headSelect'), body: $('bodySelect'), legs: $('legsSelect'), arms: $('armsSelect'), power: $('powerSelect'), personality: $('personalitySelect'),
+    randomize: $('randomizeBtn'), apply: $('applyBtn'), returnBtn: $('returnBtn'), reset: $('resetSaveBtn'), mute: $('muteBtn'),
+    stats: $('statsBox'), shop: $('shop'), missions: $('missionPanel'), records: $('recordPanel'), log: $('labLog'),
+    objective: $('objectiveText'), hpText: $('hpText'), hpBar: $('hpBar'), scoreText: $('scoreText'), comboText: $('comboText'), timerText: $('timerText'), attackText: $('attackText'), dashText: $('dashText'), powerText: $('powerText'), toast: $('toast')
+  };
+
+  const PARTS = {
+    heads: {
+      Dragon: { emoji:'🐲', attack:5, range:4, color:'#f97316', desc:'Bites hard and breathes dramatic smoke.' },
+      Robot: { emoji:'🤖', attack:2, range:18, color:'#9ca3af', desc:'Accurate, shiny, emotionally unavailable.' },
+      Shark: { emoji:'🦈', attack:7, speed:8, color:'#38bdf8', desc:'Fast, bitey, and suspicious of furniture.' },
+      Alien: { emoji:'👽', speed:5, powerCD:-1, color:'#a3e635', desc:'Cosmic brain reduces power cooldown.' },
+      Cat: { emoji:'😼', speed:16, attack:-1, color:'#facc15', desc:'Nimble, smug, difficult to supervise.' },
+      Unicorn: { emoji:'🦄', speed:7, powerCD:-.8, range:8, color:'#f0abfc', desc:'Magical forehead technology boosts powers.' },
+      Goblin: { emoji:'👺', attack:8, hp:-4, color:'#dc2626', desc:'Chaotic little face. Hits harder under pressure.' }
+    },
+    bodies: {
+      Slime: { emoji:'🫧', hp:18, speed:5, size:2, color:'#22c55e', desc:'Squishy and hard to pin down.' },
+      Metal: { emoji:'🛡️', hp:52, speed:-28, size:8, color:'#94a3b8', desc:'Heavy armor. Excellent doorstop.' },
+      Fluffy: { emoji:'☁️', hp:26, speed:8, size:5, color:'#f9a8d4', desc:'Absorbs bonks like a pillow with ambition.' },
+      Skeleton: { emoji:'🦴', hp:-14, speed:34, size:-2, color:'#e7e5e4', desc:'Light, rattly, questionably legal.' },
+      Crystal: { emoji:'💎', hp:22, powerCD:-1.2, size:3, color:'#67e8f9', desc:'Reflective body boosts powers.' },
+      Lava: { emoji:'🌋', hp:12, attack:8, speed:-6, size:5, color:'#ef4444', desc:'Hot, dramatic, rude to wooden boxes.' },
+      Rubber: { emoji:'🛟', hp:20, knock:.8, speed:4, color:'#f97316', desc:'Bouncy body softens hits and bonks back.' }
+    },
+    legs: {
+      Spider: { emoji:'🕷️', speed:14, color:'#a78bfa', desc:'Stable, speedy, and alarming.' },
+      Wheels: { emoji:'🛞', speed:42, size:-1, color:'#64748b', desc:'Zoomy but not graceful.' },
+      'Rocket Boots': { emoji:'🚀', speed:30, powerCD:-.5, color:'#f43f5e', desc:'Great for controlled laboratory panic.' },
+      'Frog Legs': { emoji:'🐸', speed:24, size:-2, color:'#84cc16', desc:'Springy dodges and heroic squeaks.' },
+      Treads: { emoji:'⚙️', speed:8, hp:14, size:3, color:'#475569', desc:'Slow turning, strong pushing.' },
+      Hoverboard: { emoji:'🛹', speed:36, powerCD:-.25, size:-1, color:'#22d3ee', desc:'Glides with questionable safety.' }
+    },
+    arms: {
+      Claws: { emoji:'🦀', attack:10, range:4, color:'#fb7185', desc:'Sharp swipes and excellent high-fives.' },
+      'Boxing Gloves': { emoji:'🥊', attack:7, knock:1.6, color:'#ef4444', desc:'Punches enemies into next Tuesday.' },
+      Tentacles: { emoji:'🦑', attack:2, range:38, color:'#c084fc', desc:'Long reach, terrible handshake.' },
+      Magnets: { emoji:'🧲', attack:1, range:12, magnet:true, color:'#60a5fa', desc:'Pulls coins, samples, and snacks.' },
+      Hammers: { emoji:'🔨', attack:12, range:-4, color:'#fbbf24', desc:'Big damage to crates and thick skulls.' },
+      'Laser Hands': { emoji:'🔫', attack:4, range:46, color:'#38bdf8', desc:'Long-range pew-pew hands.' },
+      Boomerangs: { emoji:'🪃', attack:5, range:34, knock:.6, color:'#a16207', desc:'Keeps the interns ducking.' }
+    },
+    powers: {
+      'Fire Breath': { emoji:'🔥', cd:6.8, desc:'Cone blast that burns enemies and crates.' },
+      'Freeze Ray': { emoji:'❄️', cd:7.3, desc:'Freezes enemies and lasers.' },
+      Teleport: { emoji:'✨', cd:5.6, desc:'Blink through danger in your facing direction.' },
+      Shrink: { emoji:'🐁', cd:8.2, desc:'Tiny mode for vents and easier dodging.' },
+      Lightning: { emoji:'⚡', cd:6.4, desc:'Chain zaps enemies and crates.' },
+      'Gravity Burp': { emoji:'🌀', cd:7.8, desc:'Shoves everything nearby away.' },
+      'Bubble Shield': { emoji:'🫧', cd:8.8, desc:'Blocks hits and pops enemies away.' }
+    },
+    personalities: {
+      Brave: { emoji:'🦁', desc:'Bonus damage when enemies are nearby.' },
+      Lazy: { emoji:'🛌', desc:'Sometimes refuses to move, but takes less damage.' },
+      Hungry: { emoji:'🍕', desc:'Eats nearby crates and snacks.' },
+      Scared: { emoji:'😱', desc:'Runs faster near enemies, attacks softer.' },
+      Angry: { emoji:'😡', desc:'Auto-swipes nearby targets.' },
+      Silly: { emoji:'🤡', desc:'Wobbly movement and surprise confetti.' },
+      Curious: { emoji:'🔎', desc:'Samples recharge power cooldown.' },
+      Chaotic: { emoji:'🎲', desc:'Random bursts of speed, healing, or glitter.' }
+    }
+  };
+
+  const DIFF = {
+    chill: { label:'Chill Lab', hp:.78, speed:.82, damage:.72, reward:.85, spawn:.82 },
+    normal: { label:'Normal Mayhem', hp:1, speed:1, damage:1, reward:1, spawn:1 },
+    spicy: { label:'Spicy Chaos', hp:1.22, speed:1.14, damage:1.22, reward:1.35, spawn:1.22 },
+    nightmare: { label:'Nightmare Goo', hp:1.5, speed:1.25, damage:1.48, reward:1.75, spawn:1.45 }
+  };
+
+  const POWERUPS = {
+    heart: { emoji:'❤️', label:'Heal' }, battery: { emoji:'🔋', label:'Power ready' }, bomb: { emoji:'💣', label:'Boom' }, clock: { emoji:'⏱️', label:'+Time' }, shield: { emoji:'🛡️', label:'Shield' }
+  };
+
+  const MISSIONS = {
+    firstClear: { icon:'🏁', title:'First Test Passed', desc:'Clear any non-sandbox room.', reward:25 },
+    bossClear: { icon:'👑', title:'Boss Breaker', desc:'Defeat Professor Bonk.', reward:75 },
+    combo20: { icon:'🔥', title:'Combo Gremlin', desc:'Reach a 20x combo.', reward:40 },
+    goldMedal: { icon:'🥇', title:'Gold Standard', desc:'Earn any gold medal.', reward:55 },
+    nightmare: { icon:'💀', title:'Nightmare Survivor', desc:'Clear a room on Nightmare Goo.', reward:80 },
+    upgrade8: { icon:'🔧', title:'Overengineered', desc:'Reach lab level 8.', reward:50 }
+  };
+
+  const NAME_A = ['Blor','Zorp','Munch','Fizz','Gloop','Crab','Snarf','Turbo','Noodle','Bonk','Wobble','Bumble'];
+  const NAME_B = ['bo','zilla','tron','mancer','snout','beast','flop','sprout','fang','blob','pants','quake'];
+
+  const save = loadSave();
+  const state = {
+    room:'lab', running:false, paused:false, complete:false, failed:false,
+    objective:'Build a monster, then pick a test room.',
+    coins: save.coins || 0,
+    upgrades: Object.assign({health:0,speed:0,attack:0,power:0,dash:0}, save.upgrades || {}),
+    difficulty: save.difficulty || 'normal',
+    best: Object.assign({}, save.best || {}),
+    missions: Object.assign({}, save.missions || {}),
+    career: Object.assign({clears:0,boss:0,bestCombo:0,golds:0,nightmareClears:0}, save.career || {}),
+    creature: Object.assign({name:'Blorbo', head:'Dragon', body:'Slime', legs:'Rocket Boots', arms:'Claws', power:'Fire Breath', personality:'Hungry'}, save.creature || {}),
+    c:{x:W/2,y:H/2,vx:0,vy:0,angle:0,hp:100,maxHp:100,size:34,attackCD:0,powerCD:0,dashCD:0,invuln:0,shrink:0,shield:0,lazyWait:0,lazyNap:0,dance:0,auto:0,chaos:0},
+    stats:null,
+    enemies:[], crates:[], orbs:[], pickups:[], projectiles:[], hazards:[], switches:[], walls:[], particles:[], texts:[],
+    keys:new Set(), mouse:{x:W/2,y:H/2},
+    score:0, roomCoins:0, kills:0, targetKills:0, combo:0, comboTimer:0, comboPeak:0, wave:0, timer:0, maxTimer:0, spawnTimer:0, eventTimer:0,
+    lastMedal:'None', shake:0, flash:0, toastTimer:0, labTime:0, lastFrame:performance.now(), muted:false
+  };
+
+  function loadSave(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch { return {}; } }
+  function saveGame(){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify({coins:state.coins,upgrades:state.upgrades,difficulty:state.difficulty,best:state.best,missions:state.missions,career:state.career,creature:getSelection()})); } catch {} }
+  const rand=(a,b)=>Math.random()*(b-a)+a;
+  const randInt=(a,b)=>Math.floor(rand(a,b+1));
+  const choice=a=>a[Math.floor(Math.random()*a.length)];
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
+  const angleTo=(ax,ay,bx,by)=>Math.atan2(by-ay,bx-ax);
+  const lerp=(a,b,t)=>a+(b-a)*t;
+
+  function init(){
+    populate(els.head, PARTS.heads); populate(els.body, PARTS.bodies); populate(els.legs, PARTS.legs); populate(els.arms, PARTS.arms); populate(els.power, PARTS.powers); populate(els.personality, PARTS.personalities);
+    els.name.value = state.creature.name; els.difficulty.value = state.difficulty;
+    els.head.value = state.creature.head; els.body.value = state.creature.body; els.legs.value = state.creature.legs; els.arms.value = state.creature.arms; els.power.value = state.creature.power; els.personality.value = state.creature.personality;
+    [els.name,els.head,els.body,els.legs,els.arms,els.power,els.personality].forEach(el => { el.addEventListener('change',()=>applySelection(false)); el.addEventListener('input',()=>{ if(el===els.name) applySelection(false); }); });
+    els.difficulty.addEventListener('change',()=>{ state.difficulty=els.difficulty.value; saveGame(); toast(`${diff().label} selected`); updateUI(true); });
+    els.randomize.addEventListener('click', randomizeCreature); els.apply.addEventListener('click',()=>applySelection(true)); els.returnBtn.addEventListener('click', returnToLab); els.reset.addEventListener('click', resetSave); els.mute.addEventListener('click',()=>{ state.muted=!state.muted; els.mute.textContent = state.muted ? '🔇 Muted' : '🔊 Sound'; });
+    document.querySelectorAll('.roomBtn').forEach(btn => btn.addEventListener('click',()=>startRoom(btn.dataset.room)));
+    createShop(); applySelection(false); addLog('Welcome to DX. Dash responsibly and do not feed the boss.'); addLog('Hard modes pay more coins, but the goo gets rude.'); updateMissionPanel(); updateRecordsPanel(); updateUI(true); setupInput(); requestAnimationFrame(loop);
+  }
+
+  function populate(select, obj){ select.innerHTML=''; Object.keys(obj).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=`${obj[k].emoji} ${k}`; select.appendChild(o); }); }
+  function getSelection(){ return {name:els.name.value.trim()||'Unnamed Blob', head:els.head.value, body:els.body.value, legs:els.legs.value, arms:els.arms.value, power:els.power.value, personality:els.personality.value}; }
+  function applySelection(show){ state.creature = Object.assign(state.creature, getSelection()); state.stats=calcStats(); state.c.maxHp=state.stats.hp; if(!state.running) state.c.hp=state.c.maxHp; state.c.size=state.stats.size; updateStats(); saveGame(); updateUI(true); if(show) toast(`Created ${state.creature.name}!`); }
+  function calcStats(){
+    const s={hp:100,speed:178,attack:18,range:66,size:34,powerCD:PARTS.powers[state.creature.power].cd,dashCD:3.5,knock:1,magnet:false,crateBonus:1};
+    [PARTS.heads[state.creature.head],PARTS.bodies[state.creature.body],PARTS.legs[state.creature.legs],PARTS.arms[state.creature.arms]].forEach(m=>{ s.hp+=m.hp||0; s.speed+=m.speed||0; s.attack+=m.attack||0; s.range+=m.range||0; s.size+=m.size||0; s.powerCD+=m.powerCD||0; if(m.knock) s.knock+=m.knock; if(m.magnet) s.magnet=true; });
+    if(state.creature.arms==='Hammers') s.crateBonus=1.75;
+    if(state.creature.personality==='Scared'){ s.speed+=10; s.attack-=3; }
+    if(state.creature.personality==='Angry'){ s.attack+=5; s.hp-=8; }
+    if(state.creature.personality==='Lazy'){ s.speed-=14; s.hp+=14; }
+    if(state.creature.personality==='Brave') s.hp+=6;
+    if(state.creature.personality==='Curious'){ s.powerCD-=.35; s.range+=6; }
+    if(state.creature.personality==='Chaotic'){ s.speed+=10; s.attack+=2; s.powerCD+=.25; }
+    s.hp += state.upgrades.health*22; s.speed += state.upgrades.speed*13; s.attack += state.upgrades.attack*5; s.powerCD -= state.upgrades.power*.55; s.dashCD -= state.upgrades.dash*.28;
+    s.hp=Math.max(45,Math.round(s.hp)); s.speed=Math.max(80,Math.round(s.speed)); s.attack=Math.max(5,Math.round(s.attack)); s.range=Math.max(38,Math.round(s.range)); s.size=clamp(Math.round(s.size),22,54); s.powerCD=Math.max(2.8,+s.powerCD.toFixed(1)); s.dashCD=Math.max(1.35,+s.dashCD.toFixed(1)); return s;
+  }
+  function updateStats(){ const c=state.creature, s=state.stats; const rows=[['HP',s.hp],['Speed',s.speed],['Attack',s.attack],['Reach',s.range],['Power CD',`${s.powerCD}s`],['Dash CD',`${s.dashCD}s`],['Personality',`${PARTS.personalities[c.personality].emoji} ${c.personality}`]]; els.stats.innerHTML=rows.map(([a,b])=>`<div class="statline"><span>${a}</span><strong>${b}</strong></div>`).join('')+`<div class="note">${PARTS.heads[c.head].desc}<br>${PARTS.bodies[c.body].desc}<br>${PARTS.personalities[c.personality].desc}</div>`; }
+
+  function createShop(){ const labels={health:['❤️ Reinforced organs','+HP'],speed:['💨 Slippery floors','+Speed'],attack:['💪 Wobble strength','+Attack'],power:['🔋 Better batteries','-Power cooldown'],dash:['👟 Dash boots','-Dash cooldown']}; els.shop.innerHTML=''; Object.entries(labels).forEach(([k,[name]])=>{ const row=document.createElement('div'); row.className='shop-row'; row.innerHTML=`<div><strong>${name}</strong><br><span id="${k}ShopText"></span></div>`; const btn=document.createElement('button'); btn.className='secondary'; btn.id=`${k}ShopBtn`; btn.addEventListener('click',()=>buyUpgrade(k)); row.appendChild(btn); els.shop.appendChild(row); }); updateShop(); }
+  function labLevel(){ return 1 + Object.values(state.upgrades).reduce((a,b)=>a+b,0); }
+  function cost(k){ const lv=state.upgrades[k]||0; return 70+lv*45+Math.floor(lv*lv*6); }
+  function buyUpgrade(k){ const c=cost(k); if(state.coins<c){ toast(`Need ${c-state.coins} more coins`); return; } state.coins-=c; state.upgrades[k]++; applySelection(false); updateShop(); saveGame(); maybeUnlock(); toast('Upgrade installed!'); addLog(`${k} upgraded to level ${state.upgrades[k]}. Nothing exploded. Mostly.`); }
+  function updateShop(){ ['health','speed','attack','power','dash'].forEach(k=>{ const txt=$(`${k}ShopText`), btn=$(`${k}ShopBtn`); if(!txt||!btn) return; const c=cost(k); txt.textContent=`Level ${state.upgrades[k]} • Cost ${c} coins`; btn.textContent='Buy'; btn.disabled=state.coins<c; }); }
+
+  function randomizeCreature(){ if(state.running){ toast('Return to lab before rerolling DNA'); return; } els.name.value=choice(NAME_A)+choice(NAME_B); els.head.value=choice(Object.keys(PARTS.heads)); els.body.value=choice(Object.keys(PARTS.bodies)); els.legs.value=choice(Object.keys(PARTS.legs)); els.arms.value=choice(Object.keys(PARTS.arms)); els.power.value=choice(Object.keys(PARTS.powers)); els.personality.value=choice(Object.keys(PARTS.personalities)); applySelection(true); addLog(`${state.creature.name} emerged from the randomizer. This is science.`); }
+  function resetSave(){ if(!confirm('Reset coins, upgrades, missions, and best scores?')) return; state.coins=0; state.upgrades={health:0,speed:0,attack:0,power:0,dash:0}; state.best={}; state.missions={}; state.career={clears:0,boss:0,bestCombo:0,golds:0,nightmareClears:0}; applySelection(false); saveGame(); updateShop(); updateMissionPanel(); updateRecordsPanel(); toast('Save reset'); }
+  function addLog(msg){ const p=document.createElement('p'); p.textContent=`• ${msg}`; els.log.prepend(p); while(els.log.children.length>13) els.log.removeChild(els.log.lastChild); }
+  function toast(msg){ els.toast.textContent=msg; els.toast.classList.add('show'); state.toastTimer=2.1; }
+  function diff(){ return DIFF[state.difficulty] || DIFF.normal; }
+
+  function startRoom(room){
+    applySelection(false); resetWorld(); state.room=room; state.running=true; state.paused=false; state.complete=false; state.failed=false; state.score=0; state.roomCoins=0; state.kills=0; state.combo=0; state.comboTimer=0; state.comboPeak=0; state.lastMedal='None'; state.wave=0; state.eventTimer=rand(7,12); state.spawnTimer=1; const c=state.c; c.x=120; c.y=H/2; c.vx=0; c.vy=0; c.hp=c.maxHp; c.attackCD=0; c.powerCD=0; c.dashCD=0; c.invuln=0; c.shrink=0; c.shield=0; c.lazyWait=0; c.lazyNap=0; c.auto=0; canvas.focus();
+    if(room==='obstacle') setupObstacle(); if(room==='battle') setupBattle(); if(room==='puzzle') setupPuzzle(); if(room==='destruction') setupDestruction(); if(room==='survival') setupSurvival(); if(room==='boss') setupBoss(); if(room==='sandbox') setupSandbox();
+    toast(`${roomTitle(room)} started`); addLog(`${state.creature.name} enters ${roomTitle(room)}. Interns scatter.`); updateUI(true);
+  }
+  function returnToLab(){ state.running=false; state.paused=false; state.room='lab'; state.objective='Build a monster, then pick a test room.'; state.complete=false; state.failed=false; state.c.x=W/2; state.c.y=H/2; state.c.hp=state.c.maxHp; state.c.shrink=0; state.c.shield=0; resetWorld(); toast('Returned to lab'); updateUI(true); }
+  function roomTitle(r){ return {lab:'Creature Lab',obstacle:'Obstacle Room',battle:'Battle Room',puzzle:'Puzzle Room',destruction:'Destruction Room',survival:'Survival Room',boss:'Boss Lab',sandbox:'Sandbox Room'}[r]||r; }
+  function resetWorld(){ state.enemies=[]; state.crates=[]; state.orbs=[]; state.pickups=[]; state.projectiles=[]; state.hazards=[]; state.switches=[]; state.walls=[]; state.particles=[]; state.texts=[]; state.targetKills=0; state.timer=0; state.maxTimer=0; state.shake=0; state.flash=0; }
+
+  function setupObstacle(){ state.timer=50; state.maxTimer=50; state.objective='Collect 12 glowing samples while dodging lasers and spikes.'; for(let i=0;i<12;i++) spawnOrb(rand(180,W-70),rand(70,H-70)); for(let i=0;i<6;i++) spawnLaser(rand(230,W-120),rand(90,H-90),rand(130,220),rand(0,TAU),rand(-.9,.9)); for(let i=0;i<8;i++) spawnSpike(rand(220,W-70),rand(65,H-65),rand(18,30)); for(let i=0;i<7;i++) spawnCrate(rand(240,W-80),rand(90,H-90),'sample'); }
+  function setupBattle(){ state.timer=65; state.maxTimer=65; state.targetKills=12; state.objective='Defeat 12 rogue test creatures before time runs out.'; for(let i=0;i<5;i++) spawnEnemy(); for(let i=0;i<5;i++) spawnCrate(rand(180,W-80),rand(70,H-70),'snack'); for(let i=0;i<4;i++) spawnSpike(rand(230,W-80),rand(70,H-70),20); }
+  function setupPuzzle(){ state.timer=90; state.maxTimer=90; state.objective='Step on all 4 glowing pads. Shrink can squeeze through tiny vents.'; state.c.x=88; state.c.y=88; [[170,0,22,430],[170,500,22,100],[355,120,22,480],[540,0,22,420],[705,170,22,430]].forEach(w=>state.walls.push({x:w[0],y:w[1],w:w[2],h:w[3]})); state.walls.push({x:170,y:430,w:22,h:70,needsShrink:true}); state.walls.push({x:540,y:420,w:22,h:88,needsShrink:true}); [['A',102,515],['B',300,92],['C',480,512],['D',830,90]].forEach(([label,x,y])=>state.switches.push({x,y,r:24,label,active:false})); for(let i=0;i<7;i++) spawnLaser(rand(230,W-120),rand(110,H-110),rand(110,190),rand(0,TAU),rand(-.75,.75)); for(let i=0;i<9;i++) spawnOrb(rand(220,W-75),rand(75,H-75)); for(let i=0;i<4;i++) spawnCrate(rand(230,W-80),rand(80,H-80),'battery'); }
+  function setupDestruction(){ state.timer=45; state.maxTimer=45; state.objective='Smash everything. Reach 42+ score to pass.'; for(let i=0;i<42;i++) spawnCrate(rand(190,W-65),rand(65,H-65),Math.random()<.25?'tower':'crate'); for(let i=0;i<5;i++) spawnSpike(rand(210,W-70),rand(70,H-70),rand(18,26)); }
+  function setupSurvival(){ state.timer=60; state.maxTimer=60; state.objective='Survive 60 seconds of increasingly rude enemies.'; for(let i=0;i<4;i++) spawnEnemy(); for(let i=0;i<6;i++) spawnCrate(rand(180,W-80),rand(70,H-70),'snack'); for(let i=0;i<5;i++) spawnSpike(rand(230,W-80),rand(70,H-70),20); }
+  function setupBoss(){ state.timer=95; state.maxTimer=95; state.targetKills=1; state.objective='Defeat Professor Bonk. Dodge crown lasers, goo shots, and minions.'; state.c.x=105; state.c.y=H/2; spawnEnemy('boss',W-170,H/2); for(let i=0;i<8;i++) spawnCrate(rand(205,W-250),rand(70,H-70),Math.random()<.55?'snack':'battery'); for(let i=0;i<4;i++) spawnSpike(rand(250,W-260),rand(80,H-80),22); spawnPickup(190,105,'shield'); spawnPickup(190,H-105,'heart'); spawnPickup(W/2,H/2,'battery'); }
+  function setupSandbox(){ state.objective='Sandbox: test powers, smash props, and invent nonsense. No fail state.'; for(let i=0;i<10;i++) spawnCrate(rand(170,W-70),rand(70,H-70),'crate'); for(let i=0;i<4;i++) spawnOrb(rand(170,W-70),rand(70,H-70)); for(let i=0;i<2;i++) spawnEnemy(); spawnPickup(W/2+110,H/2,'heart'); }
+
+  function spawnOrb(x,y){ state.orbs.push({x,y,r:13,pulse:rand(0,TAU)}); }
+  function spawnCrate(x,y,kind='crate'){ const hp=kind==='tower'?50:kind==='battery'?38:kind==='metal'?44:30; const r=kind==='tower'?22:kind==='metal'?20:18; state.crates.push({x,y,r,hp,maxHp:hp,kind,wobble:rand(0,TAU)}); }
+  function spawnPickup(x,y,type=null){ const roll=Math.random(); type=type || (roll<.35?'heart':roll<.6?'battery':roll<.78?'shield':roll<.9?'bomb':'clock'); state.pickups.push({x,y,type,r:15,pulse:rand(0,TAU),life:14}); }
+  function spawnProjectile(x,y,angle,speed,damage,type='goo'){ state.projectiles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:type==='boss'?12:9,damage,type,life:4.2,pulse:rand(0,TAU)}); }
+  function spawnSpike(x,y,r){ state.hazards.push({type:'spike',x,y,r,damage:13,pulse:rand(0,TAU),cool:0}); }
+  function spawnLaser(x,y,len,angle,spin){ state.hazards.push({type:'laser',x,y,len,angle,spin,damage:18,frozen:0,pulse:rand(0,TAU),cool:0}); }
+  function spawnEnemy(force=null,x=null,y=null){
+    const side=randInt(0,3); if(x===null||y===null){ if(side===0){x=W+35;y=rand(60,H-60);} if(side===1){x=-35;y=rand(60,H-60);} if(side===2){x=rand(60,W-60);y=H+35;} if(side===3){x=rand(60,W-60);y=-35;} }
+    const roll=Math.random(); const type=force || (roll < .12 + state.wave*.012 ? 'spitter' : roll < .30 + state.wave*.015 ? 'runner' : roll < .48 ? 'brute' : 'blob');
+    const base={blob:{hp:34,speed:92,r:18,damage:10,score:3,emoji:'🧫'},runner:{hp:24,speed:146,r:15,damage:8,score:4,emoji:'🦠'},brute:{hp:65,speed:66,r:24,damage:16,score:7,emoji:'🪨'},spitter:{hp:38,speed:78,r:17,damage:9,score:6,emoji:'🧬'},boss:{hp:520,speed:54,r:44,damage:24,score:65,emoji:'👑'}}[type];
+    const d=diff(); const hp=Math.round(base.hp*d.hp*(type==='boss'?1.2:1)); const e={x,y,vx:0,vy:0,type,...base,hp,maxHp:hp,speed:base.speed*d.speed,damage:base.damage*d.damage,bob:rand(0,TAU),frozen:0,hit:0,shoot:rand(.8,2.2),summon:type==='boss'?5:0,phase:1}; state.enemies.push(e); return e;
+  }
+
+  function loop(now){ const dt=Math.min(.033,(now-state.lastFrame)/1000||.016); state.lastFrame=now; update(dt); draw(); requestAnimationFrame(loop); }
+  function update(dt){ state.labTime+=dt; state.toastTimer-=dt; if(state.toastTimer<=0) els.toast.classList.remove('show'); state.shake=Math.max(0,state.shake-dt*28); state.flash=Math.max(0,state.flash-dt*2.4); if(state.running && !state.paused){ updateGame(dt); updateParticles(dt); } else if(!state.running){ updateIdle(dt); updateParticles(dt); } updateUI(); }
+  function updateIdle(dt){ const c=state.c; c.angle += Math.sin(state.labTime*.8)*dt*.18; c.x=lerp(c.x,W/2+Math.sin(state.labTime*.9)*28,dt*1.2); c.y=lerp(c.y,H/2+Math.cos(state.labTime*.7)*16,dt*1.2); if(Math.random()<dt*1.1 && state.creature.personality==='Silly') spawnParticle(c.x,c.y-16,2,42,.55,'✨'); }
+  function updateGame(dt){
+    const c=state.c; c.attackCD=Math.max(0,c.attackCD-dt); c.powerCD=Math.max(0,c.powerCD-dt); c.dashCD=Math.max(0,c.dashCD-dt); c.invuln=Math.max(0,c.invuln-dt); c.shrink=Math.max(0,c.shrink-dt); c.shield=Math.max(0,c.shield-dt); c.lazyWait=Math.max(0,c.lazyWait-dt); c.lazyNap=Math.max(0,c.lazyNap-dt); c.auto=Math.max(0,c.auto-dt); c.chaos=Math.max(0,c.chaos-dt);
+    if(state.comboTimer>0){ state.comboTimer-=dt; if(state.comboTimer<=0) state.combo=0; }
+    if(state.maxTimer>0){ state.timer-=dt; if(state.timer<=0){ state.timer=0; checkTimeOutcome(); } }
+    updateCreature(dt); updateHazards(dt); updateEnemies(dt); updateProjectiles(dt); updateCrates(dt); updateOrbs(dt); updatePickups(dt); updateSwitches(dt); updateRoomSpawns(dt); checkRoomCompletion();
+  }
+
+  function updateCreature(dt){
+    const c=state.c,s=state.stats; if(state.creature.personality==='Lazy' && c.lazyWait<=0){ c.lazyWait=rand(3.5,7.5); if(Math.random()<.3){ c.lazyNap=rand(.45,1.05); float('nap?',c.x,c.y-30); } }
+    if(state.creature.personality==='Silly'){ c.dance-=dt; if(c.dance<=0){ c.dance=rand(1.2,2.8); spawnParticle(c.x,c.y,8,70,.8,choice(['✨','🫧','⭐'])); } }
+    if(state.creature.personality==='Chaotic' && c.chaos<=0){ c.chaos=rand(4,8); const r=Math.random(); if(r<.34){ c.invuln=Math.max(c.invuln,.8); float('glitter guard!',c.x,c.y-32,'power'); } else if(r<.67){ c.hp=Math.min(c.maxHp,c.hp+8); float('+chaos HP',c.x,c.y-32,'coin'); } else { spawnParticle(c.x,c.y,16,120,.6,'🎲'); } }
+    let mx=0,my=0; if(state.keys.has('ArrowLeft')||state.keys.has('KeyA')) mx--; if(state.keys.has('ArrowRight')||state.keys.has('KeyD')) mx++; if(state.keys.has('ArrowUp')||state.keys.has('KeyW')) my--; if(state.keys.has('ArrowDown')||state.keys.has('KeyS')) my++;
+    if(state.creature.personality==='Silly' && (mx||my)){ mx+=Math.sin(state.labTime*9)*.22; my+=Math.cos(state.labTime*7)*.22; }
+    let speed=s.speed; if(state.creature.personality==='Scared' && nearestEnemy(c.x,c.y,150)) speed*=1.3; if(c.shrink>0) speed*=1.18; if(c.lazyNap>0) speed*=.08;
+    const mag=Math.hypot(mx,my)||1; mx/=mag; my/=mag; const ox=c.x,oy=c.y; c.vx=lerp(c.vx,mx*speed,dt*8); c.vy=lerp(c.vy,my*speed,dt*8); c.x+=c.vx*dt; c.y+=c.vy*dt; const r=creatureRadius(); c.x=clamp(c.x,24+r,W-24-r); c.y=clamp(c.y,24+r,H-24-r); if(collidesWall(c.x,c.y,r)){ c.x=ox; c.y=oy; c.vx*=-.15; c.vy*=-.15; }
+    if(Math.abs(c.vx)+Math.abs(c.vy)>12) c.angle=Math.atan2(c.vy,c.vx); else c.angle=angleTo(c.x,c.y,state.mouse.x,state.mouse.y);
+    if(s.magnet) pullCollectibles(dt); if(state.creature.personality==='Hungry') hungryAura(dt); if(state.creature.personality==='Angry' && c.auto<=0 && (nearestEnemy(c.x,c.y,s.range+20)||nearestCrate(c.x,c.y,s.range+15))){ basicAttack(true); c.auto=.75; }
+  }
+  function creatureRadius(){ return (state.c.shrink>0 ? .55 : 1) * (state.stats ? state.stats.size : state.c.size); }
+  function collidesWall(x,y,r){ return state.walls.some(w=>!wallPass(w)&&circleRect(x,y,r,w)); }
+  function wallPass(w){ return w.open || (w.needsShrink && creatureRadius()<23); }
+  function pullCollectibles(dt){ const c=state.c; [...state.orbs,...state.pickups,...state.crates.filter(k=>k.kind==='snack')].forEach(it=>{ const d=dist(c.x,c.y,it.x,it.y); if(d<145&&d>4){ const a=angleTo(it.x,it.y,c.x,c.y), pull=(155-d)*2.8*dt; it.x+=Math.cos(a)*pull; it.y+=Math.sin(a)*pull; } }); }
+  function hungryAura(dt){ const c=state.c,r=creatureRadius()+12; state.crates.forEach(crate=>{ if(dist(c.x,c.y,crate.x,crate.y)<r+crate.r&&crate.hp>0){ crate.hp-=30*dt; if(Math.random()<dt*8) spawnParticle(crate.x,crate.y,1,40,.4,'🍴'); } }); }
+
+  function updateHazards(dt){ const c=state.c,r=creatureRadius(); state.hazards.forEach(h=>{ h.cool=Math.max(0,h.cool-dt); h.pulse+=dt*4; if(h.frozen>0) h.frozen-=dt; else if(h.type==='laser') h.angle+=h.spin*dt; let hit=false; if(h.type==='spike') hit=dist(c.x,c.y,h.x,h.y)<r+h.r*.8; if(h.type==='laser'&&h.frozen<=0) hit=pointSeg(c.x,c.y,h.x,h.y,h.x+Math.cos(h.angle)*h.len,h.y+Math.sin(h.angle)*h.len)<r+7; if(hit&&h.cool<=0){ damageCreature(h.damage,h.type==='laser'?'Zapped!':'Ouch spikes!'); h.cool=.75; } }); }
+  function updateEnemies(dt){ const c=state.c; state.enemies.forEach(e=>{ e.hit=Math.max(0,e.hit-dt); e.bob+=dt*5; if(e.type==='boss'){ updateBoss(e,dt); return; } if(e.frozen>0){ e.frozen-=dt; return; } const a=angleTo(e.x,e.y,c.x,c.y); let sp=e.speed; if(state.room==='survival') sp+=state.wave*4; const ox=e.x,oy=e.y; e.x+=Math.cos(a)*sp*dt; e.y+=Math.sin(a)*sp*dt; if(collidesWall(e.x,e.y,e.r)){ e.x=ox+Math.cos(a+rand(-.8,.8))*sp*.18*dt; e.y=oy+Math.sin(a+rand(-.8,.8))*sp*.18*dt; } if(e.type==='spitter'){ e.shoot-=dt; if(e.shoot<=0){ spawnProjectile(e.x,e.y,a,190,e.damage*.8,'goo'); e.shoot=rand(1.4,2.6); } } if(dist(e.x,e.y,c.x,c.y)<e.r+creatureRadius()&&e.hit<=0){ let dmg=e.damage; if(state.creature.personality==='Lazy') dmg*=.75; damageCreature(dmg,choice(['Bonked!','Nommed!','Rude enemy!'])); e.hit=.85; } }); for(let i=state.enemies.length-1;i>=0;i--){ const e=state.enemies[i]; if(e.hp<=0){ state.enemies.splice(i,1); state.kills++; gainScore(e.score,e.x,e.y,e.type==='boss'?'BOSS':'KO'); addCoins(e.type==='boss'?24:e.type==='brute'?4:2,e.x,e.y); state.shake=Math.max(state.shake,e.type==='boss'?16:5); state.flash=Math.max(state.flash,e.type==='boss'?.45:.12); spawnParticle(e.x,e.y,e.type==='boss'?34:12,e.type==='boss'?210:120,.9,choice(['🧪','💥','🫧'])); if(Math.random()<(e.type==='boss'?1:.35)) spawnPickup(e.x+rand(-18,18),e.y+rand(-18,18)); if(Math.random()<.32) spawnOrb(e.x+rand(-16,16),e.y+rand(-16,16)); } } }
+  function updateBoss(e,dt){ const c=state.c; if(e.frozen>0){ e.frozen-=dt*.45; return; } const hpPct=e.hp/e.maxHp; e.phase=hpPct<.34?3:hpPct<.67?2:1; e.shoot-=dt; e.summon-=dt; const a=angleTo(e.x,e.y,c.x,c.y), orbit=Math.sin(state.labTime*(1.1+e.phase*.15))*.55, sp=e.speed+e.phase*16, ox=e.x, oy=e.y; e.x+=Math.cos(a+orbit)*sp*dt; e.y+=Math.sin(a+orbit)*sp*dt; e.x=clamp(e.x,70,W-70); e.y=clamp(e.y,70,H-70); if(collidesWall(e.x,e.y,e.r)){ e.x=ox; e.y=oy; } if(dist(e.x,e.y,c.x,c.y)<e.r+creatureRadius()&&e.hit<=0){ damageCreature(e.damage+e.phase*3,choice(['Boss bonk!','Crown crash!','Professor Bonk says no!'])); e.hit=.95; } if(e.summon<=0){ const minions=state.enemies.filter(x=>x.type!=='boss').length; if(minions<e.phase+1){ for(let i=0;i<e.phase;i++) spawnEnemy(); toast('Boss summoned minions!'); } e.summon=Math.max(4.5,8-e.phase); } if(e.shoot<=0){ bossAttack(e); e.shoot=Math.max(1.1,3-e.phase*.45); } }
+  function bossAttack(e){ const c=state.c, a=angleTo(e.x,e.y,c.x,c.y); if(e.phase===1||Math.random()<.55){ const shots=e.phase===3?5:3; for(let i=0;i<shots;i++) spawnProjectile(e.x,e.y,a+(i-(shots-1)/2)*.22,220+e.phase*25,10+e.phase*4,'boss'); float('goo volley!',e.x,e.y-55,'power'); } else if(Math.random()<.5){ for(let i=0;i<2+e.phase;i++) if(state.hazards.length<24) spawnLaser(e.x,e.y,rand(150,230),rand(0,TAU),rand(-1.15,1.15)); float('laser crown!',e.x,e.y-55,'power'); } else { if(dist(e.x,e.y,c.x,c.y)<185) damageCreature(18+e.phase*4,'Shockwave!'); spawnParticle(e.x,e.y,30,210,.75,'💢'); state.shake=Math.max(state.shake,12); float('shockwave!',e.x,e.y-55,'power'); } }
+  function updateProjectiles(dt){ const c=state.c; for(let i=state.projectiles.length-1;i>=0;i--){ const p=state.projectiles[i]; p.life-=dt; p.pulse+=dt*6; p.x+=p.vx*dt; p.y+=p.vy*dt; const out=p.x<-40||p.x>W+40||p.y<-40||p.y>H+40; if(p.life<=0||out||collidesWall(p.x,p.y,p.r)){ state.projectiles.splice(i,1); continue; } if(dist(p.x,p.y,c.x,c.y)<p.r+creatureRadius()){ damageCreature(p.damage,p.type==='boss'?'Crown goo!':'Goo shot!'); spawnParticle(p.x,p.y,8,100,.5,'💦'); state.projectiles.splice(i,1); } } }
+  function updateCrates(dt){ for(let i=state.crates.length-1;i>=0;i--){ const crate=state.crates[i]; crate.wobble+=dt*4; if(crate.hp<=0){ state.crates.splice(i,1); const score=crate.kind==='tower'?4:crate.kind==='battery'?3:2; gainScore(score,crate.x,crate.y,crate.kind==='tower'?'tower':'smash'); addCoins(crate.kind==='tower'?3:1,crate.x,crate.y); state.shake=Math.max(state.shake,crate.kind==='tower'?5:2); spawnParticle(crate.x,crate.y,10,125,.65,crate.kind==='snack'?'🍕':'🪵'); if(crate.kind==='battery'||Math.random()<.11) spawnPickup(crate.x,crate.y,crate.kind==='battery'?'battery':null); if(crate.kind==='snack'||Math.random()<.12) spawnOrb(crate.x,crate.y); } } }
+  function updateOrbs(dt){ const c=state.c,r=creatureRadius(); for(let i=state.orbs.length-1;i>=0;i--){ const o=state.orbs[i]; o.pulse+=dt*5; if(dist(c.x,c.y,o.x,o.y)<r+o.r){ state.orbs.splice(i,1); gainScore(1,o.x,o.y,'sample'); state.coins++; state.roomCoins++; if(state.creature.personality==='Curious') c.powerCD=Math.max(0,c.powerCD-.45); saveGame(); spawnParticle(o.x,o.y,6,90,.55,'🧪'); } } }
+  function updatePickups(dt){ const c=state.c; for(let i=state.pickups.length-1;i>=0;i--){ const p=state.pickups[i]; p.life-=dt; p.pulse+=dt*5; if(p.life<=0){ state.pickups.splice(i,1); continue; } if(dist(c.x,c.y,p.x,p.y)<creatureRadius()+p.r+4){ state.pickups.splice(i,1); applyPickup(p); } } }
+  function applyPickup(p){ const c=state.c, info=POWERUPS[p.type]||POWERUPS.heart; if(p.type==='heart'){ const heal=Math.round(c.maxHp*.28); c.hp=Math.min(c.maxHp,c.hp+heal); float(`+${heal} HP`,p.x,p.y,'coin'); } if(p.type==='battery'){ c.powerCD=0; float('power ready!',p.x,p.y,'power'); } if(p.type==='bomb'){ damageNearby(p.x,p.y,170,state.stats.attack*2.2,'boom!'); state.shake=Math.max(state.shake,14); state.flash=Math.max(state.flash,.22); float('BOOM!',p.x,p.y,'damage'); } if(p.type==='clock'){ if(state.maxTimer>0) state.timer=Math.min(state.maxTimer+8,state.timer+8); float('+8 sec',p.x,p.y,'coin'); } if(p.type==='shield'){ c.shield=7.5; float('shield up!',p.x,p.y,'power'); } spawnParticle(p.x,p.y,14,120,.75,info.emoji); toast(info.label); }
+  function updateSwitches(dt){ const c=state.c; state.switches.forEach(sw=>{ if(!sw.active&&dist(c.x,c.y,sw.x,sw.y)<creatureRadius()+sw.r){ sw.active=true; gainScore(5,sw.x,sw.y,`Pad ${sw.label}`); spawnParticle(sw.x,sw.y,14,120,.8,'✨'); addLog(`${state.creature.name} activated pad ${sw.label}. It made a very official beep.`); } }); }
+  function updateRoomSpawns(dt){ if(state.room==='battle'){ state.spawnTimer-=dt; if(state.spawnTimer<=0&&state.enemies.length<7&&state.kills<state.targetKills){ spawnEnemy(); state.spawnTimer=Math.max(1,3.1-state.kills*.12)/diff().spawn; } } if(state.room==='survival'){ state.spawnTimer-=dt; const elapsed=state.maxTimer-state.timer, target=Math.floor(elapsed/10)+1; if(target>state.wave){ state.wave=target; addLog(`Wave ${state.wave}: containment paperwork worsens.`); toast(`Wave ${state.wave}!`); spawnLaser(rand(240,W-140),rand(90,H-90),rand(120,180),rand(0,TAU),rand(-.85,.85)); } if(state.spawnTimer<=0&&state.enemies.length<5+state.wave){ spawnEnemy(); state.spawnTimer=Math.max(.55,2.2-state.wave*.13)/diff().spawn; } } if(state.room==='boss'){ state.eventTimer-=dt; if(state.eventTimer<=0){ Math.random()<.55?spawnPickup(rand(130,W-90),rand(70,H-70)):spawnCrate(rand(190,W-90),rand(70,H-70),Math.random()<.35?'battery':'snack'); state.eventTimer=rand(7,11); } } if(state.room==='sandbox'){ state.spawnTimer-=dt; if(state.spawnTimer<=0){ const r=Math.random(); if(r<.33) spawnCrate(rand(170,W-70),rand(70,H-70)); else if(r<.62) spawnOrb(rand(170,W-70),rand(70,H-70)); else if(state.enemies.length<5) spawnEnemy(); state.spawnTimer=rand(4,7); } } }
+
+  function checkRoomCompletion(){ if(!state.running||state.complete||state.failed) return; if(state.c.hp<=0){ failRoom(`${state.creature.name} fainted heroically. The lab mop received overtime pay.`); return; } if(state.room==='obstacle'&&state.orbs.length===0) completeRoom('Obstacle room cleared. Laser safety committee is confused.',35+Math.floor(state.timer/3)); if(state.room==='battle'&&state.kills>=state.targetKills) completeRoom('Battle room conquered. Rogue blobs are filing complaints.',45+Math.floor(state.timer/2)); if(state.room==='puzzle'&&state.switches.every(sw=>sw.active)) completeRoom('Puzzle solved. Four buttons, zero dignity lost.',55+Math.floor(state.timer/3)); if(state.room==='destruction'&&state.score>=42) completeRoom('Destruction quota met. Insurance forms entered orbit.',45+Math.floor(state.timer/2)); if(state.room==='boss'&&!state.enemies.some(e=>e.type==='boss')) completeRoom('Professor Bonk has been reclassified as a pancake.',90+Math.floor(state.timer/2)+Math.floor(state.c.hp/4)); }
+  function checkTimeOutcome(){ if(state.complete||state.failed) return; if(state.room==='survival'){ completeRoom('Survival complete. The room is still mostly room-shaped.',60+state.wave*8+Math.floor(state.c.hp/5)); return; } if(state.room==='destruction'&&state.score>=30){ completeRoom('Time up, but the damage was emotionally meaningful.',28+Math.floor(state.score/2)); return; } if(state.room!=='sandbox') failRoom(`Time expired in ${roomTitle(state.room)}. The clipboard judges harshly.`); }
+  function completeRoom(message,reward){ if(state.complete||state.failed) return; state.complete=true; state.running=false; state.paused=false; const medal=medalForRun(); state.lastMedal=medal; state.career.clears++; if(state.room==='boss') state.career.boss++; if(medal==='Gold') state.career.golds++; if(state.difficulty==='nightmare') state.career.nightmareClears++; recordBest(); roomReward(reward,message); maybeUnlock(); toast(`${medal} clear! +${Math.floor(reward*diff().reward)} coins`); addLog(`${state.creature.name} passed ${roomTitle(state.room)} with ${medal} and score ${state.score}.`); setTimeout(()=>{ if(state.complete) returnToLab(); },1800); }
+  function failRoom(message){ if(state.complete||state.failed||state.room==='sandbox') return; state.failed=true; state.running=false; state.paused=false; recordBest(); const consolation=Math.max(3,Math.floor(state.score/3)); state.coins+=consolation; state.roomCoins+=consolation; state.combo=0; state.comboTimer=0; saveGame(); updateShop(); updateRecordsPanel(); toast(`Test failed. +${consolation} coins for trying.`); addLog(message); setTimeout(()=>{ if(state.failed) returnToLab(); },1800); }
+  function medalForRun(){ if(state.room==='sandbox'||state.room==='lab') return 'None'; const value=state.score+Math.floor(state.timer/2)+Math.floor(state.c.hp/8); const thresholds={obstacle:[15,25,35],battle:[32,45,60],puzzle:[28,42,56],destruction:[48,64,82],survival:[30,50,70],boss:[65,88,115]}[state.room]||[20,40,60]; return value>=thresholds[2]?'Gold':value>=thresholds[1]?'Silver':value>=thresholds[0]?'Bronze':'Bronze'; }
+  function recordBest(){ if(state.room==='lab'||state.room==='sandbox') return; const key=`${state.difficulty}:${state.room}`, old=state.best[key]||0; if(state.score>old){ state.best[key]=state.score; addLog(`New ${diff().label} best in ${roomTitle(state.room)}: ${state.score}!`); } saveGame(); updateRecordsPanel(); }
+  function roomReward(base,msg){ const gained=addCoins(base,state.c.x,state.c.y-38,false); float(`Room reward +${gained}`,state.c.x,state.c.y-60,'coin'); if(msg) addLog(msg); }
+
+  function basicAttack(auto=false){ if(!state.running||state.paused||state.c.attackCD>0) return; const c=state.c,s=state.stats; let damage=s.attack; if(state.creature.personality==='Brave'&&nearestEnemy(c.x,c.y,115)) damage*=1.25; if(state.creature.personality==='Scared'&&nearestEnemy(c.x,c.y,130)) damage*=.88; c.attackCD=auto?.34:.42; const hit=[]; state.enemies.forEach(e=>{ if(inArc(e.x,e.y,e.r,s.range,1.25)){ e.hp-=damage; const a=angleTo(c.x,c.y,e.x,e.y); e.x+=Math.cos(a)*12*s.knock; e.y+=Math.sin(a)*12*s.knock; e.hit=Math.max(e.hit,.1); hit.push(e); float(`-${Math.round(damage)}`,e.x,e.y-10,'damage'); } }); state.crates.forEach(k=>{ if(inArc(k.x,k.y,k.r,s.range,1.45)){ k.hp-=damage*s.crateBonus; hit.push(k); float('smash!',k.x,k.y-10,'damage'); } }); const sx=c.x+Math.cos(c.angle)*s.range*.45, sy=c.y+Math.sin(c.angle)*s.range*.45; spawnParticle(sx,sy,hit.length?10:4,hit.length?110:60,.32,auto?'😡':PARTS.arms[state.creature.arms].emoji); tone(220,.035); if(!hit.length&&!auto&&Math.random()<.18) float(choice(['whoosh','miss!','air bonk']),sx,sy); }
+  function inArc(x,y,tr,range,width){ const c=state.c,d=dist(c.x,c.y,x,y); if(d>range+tr+creatureRadius()*.25) return false; const a=angleTo(c.x,c.y,x,y), diffA=Math.abs(wrap(a-c.angle)); return diffA<width || d<creatureRadius()+tr+14; }
+  function activatePower(){ if(!state.running||state.paused||state.c.powerCD>0) return; const c=state.c; c.powerCD=state.stats.powerCD; const p=state.creature.power; if(p==='Fire Breath') fireBreath(); if(p==='Freeze Ray') freezeRay(); if(p==='Teleport') teleport(); if(p==='Shrink') shrink(); if(p==='Lightning') lightning(); if(p==='Gravity Burp') gravityBurp(); if(p==='Bubble Shield') bubbleShield(); tone(440,.08); }
+  function fireBreath(){ const c=state.c; let hit=0; state.enemies.forEach(e=>{ if(inCone(e.x,e.y,210,.58)){ e.hp-=state.stats.attack*1.8; e.frozen=0; hit++; float('burn!',e.x,e.y-15,'damage'); } }); state.crates.forEach(k=>{ if(inCone(k.x,k.y,210,.62)){ k.hp-=state.stats.attack*2.2*state.stats.crateBonus; hit++; } }); for(let i=0;i<24;i++){ const a=c.angle+rand(-.55,.55), d=rand(35,190); state.particles.push({x:c.x+Math.cos(a)*d,y:c.y+Math.sin(a)*d,vx:Math.cos(a)*rand(20,70),vy:Math.sin(a)*rand(20,70),r:rand(3,8),life:rand(.25,.72),maxLife:.72,emoji:choice(['🔥','💨']),angle:a}); } float(hit?`Fire hit ${hit}!`:'toasty air',c.x,c.y-36,'power'); }
+  function freezeRay(){ const c=state.c; let n=0; state.enemies.forEach(e=>{ if(inCone(e.x,e.y,230,.46)||dist(c.x,c.y,e.x,e.y)<90){ e.frozen=3.2; e.hp-=state.stats.attack*.35; n++; float('frozen',e.x,e.y-14,'power'); } }); state.hazards.forEach(h=>{ if(h.type==='laser'&&dist(c.x,c.y,h.x,h.y)<230){ h.frozen=3.8; n++; } }); spawnParticle(c.x+Math.cos(c.angle)*70,c.y+Math.sin(c.angle)*70,20,120,.85,'❄️'); float(n?`Froze ${n}!`:'snowy silence',c.x,c.y-36,'power'); }
+  function teleport(){ const c=state.c,sx=c.x,sy=c.y,r=creatureRadius(); let d=178; while(d>10){ const nx=c.x+Math.cos(c.angle)*d, ny=c.y+Math.sin(c.angle)*d; if(nx>35&&nx<W-35&&ny>35&&ny<H-35&&!collidesWall(nx,ny,r)){ c.x=nx;c.y=ny;break; } d-=16; } spawnParticle(sx,sy,18,150,.75,'✨'); spawnParticle(c.x,c.y,18,150,.75,'✨'); damageNearby(c.x,c.y,60,state.stats.attack*.8,'blink bonk'); float('blink!',c.x,c.y-38,'power'); }
+  function shrink(){ state.c.shrink=6.5; spawnParticle(state.c.x,state.c.y,16,120,.8,'🐁'); float('tiny mode!',state.c.x,state.c.y-38,'power'); }
+  function lightning(){ const c=state.c, possible=[...state.enemies,...state.crates].filter(t=>dist(c.x,c.y,t.x,t.y)<260).sort((a,b)=>dist(c.x,c.y,a.x,a.y)-dist(c.x,c.y,b.x,b.y)); let last={x:c.x,y:c.y},hits=0; possible.slice(0,6).forEach(t=>{ const d=dist(last.x,last.y,t.x,t.y); if(d<210||hits===0){ t.hp-=state.stats.attack*(hits===0?1.6:1.05); bolt(last.x,last.y,t.x,t.y); spawnParticle(t.x,t.y,6,110,.48,'⚡'); float('zap!',t.x,t.y-12,'power'); last=t; hits++; } }); if(!hits) spawnParticle(c.x+Math.cos(c.angle)*50,c.y+Math.sin(c.angle)*50,10,90,.4,'⚡'); float(hits?`Chain x${hits}`:'static hair',c.x,c.y-38,'power'); }
+  function gravityBurp(){ const c=state.c; let pushed=0; [...state.enemies,...state.crates].forEach(t=>{ const d=dist(c.x,c.y,t.x,t.y); if(d<160){ const a=angleTo(c.x,c.y,t.x,t.y), push=190-d; t.x+=Math.cos(a)*push; t.y+=Math.sin(a)*push; t.hp-=state.stats.attack*.75; pushed++; } }); spawnParticle(c.x,c.y,32,180,.9,'🌀'); float(pushed?`burped ${pushed}!`:'awkward...',c.x,c.y-38,'power'); }
+  function bubbleShield(){ const c=state.c; c.shield=8; damageNearby(c.x,c.y,95,state.stats.attack*.65,'bubble pop'); spawnParticle(c.x,c.y,28,130,.85,'🫧'); float('bubble shield!',c.x,c.y-38,'power'); }
+  function dash(){ if(!state.running||state.paused||state.c.dashCD>0) return; const c=state.c; let dx=0,dy=0; if(state.keys.has('ArrowLeft')||state.keys.has('KeyA')) dx--; if(state.keys.has('ArrowRight')||state.keys.has('KeyD')) dx++; if(state.keys.has('ArrowUp')||state.keys.has('KeyW')) dy--; if(state.keys.has('ArrowDown')||state.keys.has('KeyS')) dy++; const m=Math.hypot(dx,dy); if(m){ dx/=m; dy/=m; } else { dx=Math.cos(c.angle); dy=Math.sin(c.angle); } const sx=c.x,sy=c.y,r=creatureRadius(),distance=135+Math.min(45,state.stats.speed*.12); for(let i=1;i<=10;i++){ const nx=sx+dx*distance*(i/10), ny=sy+dy*distance*(i/10); if(nx<24+r||nx>W-24-r||ny<24+r||ny>H-24-r||collidesWall(nx,ny,r)) break; c.x=nx;c.y=ny; } c.dashCD=state.stats.dashCD; c.invuln=Math.max(c.invuln,.35); c.angle=Math.atan2(dy,dx); for(let i=0;i<5;i++) spawnParticle(lerp(sx,c.x,i/4),lerp(sy,c.y,i/4),3,80,.38,'💨'); damageNearby(c.x,c.y,creatureRadius()+18,state.stats.attack*.35,'dash bonk'); tone(660,.04); }
+
+  function gainScore(n,x,y,label=''){ state.score+=n; addCombo(n,x,y); float(label?`${label} +${n}`:`+${n}`,x,y,'score'); }
+  function addCombo(n,x,y){ if(!state.running||state.room==='lab') return; state.combo+=n; state.comboPeak=Math.max(state.comboPeak,state.combo); state.career.bestCombo=Math.max(state.career.bestCombo,state.combo); state.comboTimer=clamp(2.4+state.combo*.045,2.4,6.2); if(state.combo>=10&&state.combo%10===0){ float(`${state.combo}x combo!`,x,y-20,'coin'); spawnParticle(x,y,8,105,.55,'⭐'); maybeUnlock(); } }
+  function addCoins(base,x=null,y=null,useCombo=true){ const boost=useCombo?1+Math.min(.9,Math.floor(state.combo/10)*.1):1; const gained=Math.max(1,Math.floor(base*diff().reward*boost)); state.coins+=gained; state.roomCoins+=gained; saveGame(); updateShop(); if(x!==null) float(`+${gained}🪙`,x,y-16,'coin'); return gained; }
+  function maybeUnlock(){ const checks={firstClear:state.career.clears>=1,bossClear:state.career.boss>=1,combo20:state.career.bestCombo>=20,goldMedal:state.career.golds>=1,nightmare:state.career.nightmareClears>=1,upgrade8:labLevel()>=8}; Object.entries(checks).forEach(([k,ok])=>{ if(ok&&!state.missions[k]) unlock(k); }); }
+  function unlock(k){ const m=MISSIONS[k]; if(!m) return; state.missions[k]=Date.now(); state.coins+=m.reward; saveGame(); updateShop(); updateMissionPanel(); toast(`${m.icon} Mission: ${m.title}!`); addLog(`Mission complete: ${m.title}. Bonus payout: ${m.reward} coins.`); }
+
+  function damageNearby(x,y,r,amount,label){ [...state.enemies,...state.crates].forEach(t=>{ if(dist(x,y,t.x,t.y)<r+(t.r||0)){ t.hp-=amount; float(label,t.x,t.y-12,'damage'); } }); }
+  function damageCreature(amount,label){ const c=state.c; if(c.invuln>0) return; if(c.shrink>0) amount*=.72; if(c.shield>0) amount*=.35; c.hp-=Math.round(amount); c.invuln=.62; state.shake=Math.max(state.shake,6); spawnParticle(c.x,c.y,8,110,.45,'💢'); float(label||`-${Math.round(amount)}`,c.x,c.y-34,'damage'); }
+  function nearestEnemy(x,y,max){ let best=null,bd=max; state.enemies.forEach(e=>{ const d=dist(x,y,e.x,e.y); if(d<bd){bd=d;best=e;} }); return best; }
+  function nearestCrate(x,y,max){ let best=null,bd=max; state.crates.forEach(e=>{ const d=dist(x,y,e.x,e.y); if(d<bd){bd=d;best=e;} }); return best; }
+  function inCone(x,y,range,half){ const c=state.c,d=dist(c.x,c.y,x,y); if(d>range) return false; return Math.abs(wrap(angleTo(c.x,c.y,x,y)-c.angle))<half; }
+  function wrap(a){ while(a>Math.PI) a-=TAU; while(a<-Math.PI) a+=TAU; return a; }
+  function spawnParticle(x,y,count=6,speed=90,life=.6,emoji=null){ for(let i=0;i<count;i++){ const a=rand(0,TAU); state.particles.push({x,y,vx:Math.cos(a)*rand(20,speed),vy:Math.sin(a)*rand(20,speed),r:rand(2,6),life:rand(life*.45,life),maxLife:life,emoji,angle:rand(0,TAU)}); } }
+  function float(text,x,y,kind='normal'){ state.texts.push({text,x,y,vy:-45,life:1.1,kind}); }
+  function bolt(x1,y1,x2,y2){ for(let i=0;i<9;i++){ const t=i/8; state.particles.push({x:lerp(x1,x2,t)+rand(-10,10),y:lerp(y1,y2,t)+rand(-10,10),vx:rand(-18,18),vy:rand(-18,18),r:rand(3,6),life:.22,maxLife:.22,emoji:'⚡',angle:0}); } }
+  function updateParticles(dt){ for(let i=state.particles.length-1;i>=0;i--){ const p=state.particles[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=Math.pow(.04,dt); p.vy*=Math.pow(.04,dt); p.angle+=dt*4; if(p.life<=0) state.particles.splice(i,1); } for(let i=state.texts.length-1;i>=0;i--){ const t=state.texts[i]; t.life-=dt; t.y+=t.vy*dt; t.vy*=Math.pow(.5,dt); if(t.life<=0) state.texts.splice(i,1); } }
+
+  function draw(){ ctx.save(); if(state.shake>0){ const s=state.shake; ctx.translate(rand(-s,s),rand(-s,s)); } drawBackground(); if(!state.running&&state.room==='lab') drawLab(); else drawArena(); drawParticles(); drawTexts(); drawCreature(state.c.x,state.c.y); if(state.flash>0){ ctx.globalAlpha=state.flash*.35; ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1; } if(state.paused) drawPause(); if(!state.running&&state.room!=='lab') drawResult(); ctx.restore(); }
+  function drawBackground(){
+    const t=state.labTime||0, room=state.room;
+    let top='#171a31', mid='#111321', bottom='#090c17', accent='rgba(114,255,182,.18)', accent2='rgba(120,183,255,.10)';
+    if(room==='boss'){ top='#341528'; mid='#171325'; bottom='#0d0a16'; accent='rgba(255,107,122,.18)'; accent2='rgba(199,139,255,.12)'; }
+    else if(room==='puzzle'){ top='#14253e'; mid='#111928'; bottom='#0b0f17'; accent='rgba(120,183,255,.16)'; accent2='rgba(114,255,182,.10)'; }
+    else if(room==='destruction'){ top='#251b2a'; mid='#171325'; bottom='#0c0d16'; accent='rgba(255,204,92,.16)'; accent2='rgba(255,107,122,.11)'; }
+    else if(room==='survival'){ top='#16253b'; mid='#101729'; bottom='#0a0d17'; accent='rgba(34,211,238,.16)'; accent2='rgba(120,183,255,.11)'; }
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,top); g.addColorStop(.58,mid); g.addColorStop(1,bottom);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    [[W*.18,H*.14,220,accent],[W*.82,H*.2,190,accent2],[W*.52,H*.92,240,'rgba(255,255,255,.03)']].forEach(([x,y,r,c],i)=>{
+      const rg=ctx.createRadialGradient(x,y,8,x,y,r+(Math.sin(t*.35+i)*18));
+      rg.addColorStop(0,c); rg.addColorStop(.5,c); rg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.globalAlpha=.65-(i*.18);
+      ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(x,y,r+(Math.sin(t*.25+i)*12),0,TAU); ctx.fill();
+      ctx.globalAlpha=1;
+    });
+
+    ctx.save();
+    for(let i=0;i<40;i++){
+      const x=((i*131.7+t*(8+(i%4)*4))%(W+120))-60;
+      const y=(Math.sin(t*.28+i*1.47)*.5+.5)*(H*.72)+((i*43)%110)-55;
+      const r=1.2+(i%4)*.8;
+      ctx.globalAlpha=.06+((i%5)/5)*.06;
+      ctx.fillStyle=i%3===0?'#fff':(i%2===0?'#72ffb6':'#78b7ff');
+      ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.save();
+    const floor=ctx.createRadialGradient(W/2,H*.93,40,W/2,H*.9,W*.68);
+    floor.addColorStop(0,'rgba(255,255,255,.05)');
+    floor.addColorStop(.18,accent2);
+    floor.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=floor;
+    ctx.beginPath(); ctx.ellipse(W/2,H*.92,W*.5,H*.18,0,0,TAU); ctx.fill();
+
+    ctx.strokeStyle='rgba(255,255,255,.055)';
+    ctx.lineWidth=1;
+    const horizon=H*.66;
+    for(let i=-9;i<=9;i++){
+      ctx.beginPath(); ctx.moveTo(W/2+i*18,horizon); ctx.lineTo(W/2+i*92,H-26); ctx.stroke();
+    }
+    for(let i=1;i<=7;i++){
+      const y=horizon+i*i*5.6;
+      ctx.beginPath(); ctx.moveTo(38,y); ctx.quadraticCurveTo(W/2,horizon-(i*2.2),W-38,y); ctx.stroke();
+    }
+    ctx.restore();
+
+    if(room==='lab'){
+      for(let s=0;s<2;s++){
+        const bx=s?W-70:70;
+        for(let i=0;i<8;i++){
+          const yy=H-42-((t*36+i*74)%420);
+          ctx.save();
+          ctx.globalAlpha=.08+(i%3)*.03;
+          ctx.fillStyle='#72ffb6';
+          ctx.beginPath(); ctx.arc(bx+Math.sin(t+i)*12,yy,8+(i%3)*4,0,TAU); ctx.fill();
+          ctx.restore();
+        }
+      }
+    } else if(room==='boss'){
+      ctx.save();
+      ctx.translate(W/2,H/2);
+      ctx.rotate(t*.18);
+      ctx.strokeStyle='rgba(199,139,255,.16)';
+      ctx.lineWidth=2;
+      for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(0,0,88+i*34,0,TAU); ctx.stroke(); }
+      for(let i=0;i<8;i++){ const a=i*TAU/8; ctx.beginPath(); ctx.moveTo(Math.cos(a)*62,Math.sin(a)*62); ctx.lineTo(Math.cos(a)*150,Math.sin(a)*150); ctx.stroke(); }
+      ctx.restore();
+    } else if(room==='puzzle'){
+      for(let i=0;i<6;i++){
+        const x=120+i*140+Math.sin(t*.45+i)*14, y=130+Math.cos(t*.55+i)*18;
+        ctx.save(); ctx.translate(x,y); ctx.rotate(t*.6+i);
+        ctx.strokeStyle='rgba(120,183,255,.18)'; ctx.lineWidth=2; ctx.beginPath(); ctx.rect(-16,-16,32,32); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    const vg=ctx.createRadialGradient(W/2,H*.45,120,W/2,H*.52,Math.max(W,H)*.76);
+    vg.addColorStop(.45,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.42)');
+    ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+
+    ctx.strokeStyle='rgba(255,255,255,.16)';
+    ctx.lineWidth=10; roundRect(18,18,W-36,H-36,22,false,true);
+    ctx.strokeStyle='rgba(255,255,255,.05)';
+    ctx.lineWidth=1; roundRect(24,24,W-48,H-48,18,false,true);
+  }
+
+  function drawLab(){ drawTable(70,88,210,92,'🧪','Specimen goo'); drawTable(W-310,88,240,92,'🧬','Mutation menu'); drawTable(80,H-145,260,90,'🔧','Upgrade junk'); drawTable(W-330,H-145,250,90,'💾','Totally safe save drive'); ctx.fillStyle='rgba(114,255,182,.08)'; ctx.strokeStyle='rgba(114,255,182,.35)'; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(W/2,H/2+18,170,130,0,0,TAU); ctx.fill(); ctx.stroke(); ctx.fillStyle='rgba(255,255,255,.88)'; ctx.font='900 28px system-ui'; ctx.textAlign='center'; ctx.fillText('Creature Lab DX',W/2,68); ctx.font='700 16px system-ui'; ctx.fillStyle='rgba(255,255,255,.68)'; ctx.fillText('Build, test, combo, upgrade, repeat until the clipboard begs for mercy.',W/2,95); ctx.font='32px serif'; for(let i=0;i<8;i++){ const a=state.labTime*.5+i*TAU/8; ctx.fillText(PARTS.powers[state.creature.power].emoji,W/2+Math.cos(a)*220,H/2+Math.sin(a)*145); } }
+  function drawTable(x,y,w,h,emoji,label){ ctx.save(); ctx.fillStyle='rgba(255,255,255,.08)'; ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.lineWidth=2; roundRect(x,y,w,h,16,true,true); ctx.font='34px serif'; ctx.fillText(emoji,x+24,y+46); ctx.font='800 13px system-ui'; ctx.fillStyle='rgba(255,255,255,.72)'; ctx.fillText(label,x+58,y+45); ctx.restore(); }
+  function drawArena(){ drawWalls(); drawSwitches(); drawHazards(); drawOrbs(); drawPickups(); drawCrates(); drawEnemies(); drawProjectiles(); drawPowerPreview(); }
+  function drawWalls(){ state.walls.forEach(w=>{ ctx.save(); if(wallPass(w)){ctx.fillStyle='rgba(114,255,182,.08)';ctx.strokeStyle='rgba(114,255,182,.38)';} else if(w.needsShrink){ctx.fillStyle='rgba(120,183,255,.12)';ctx.strokeStyle='rgba(120,183,255,.48)';} else {ctx.fillStyle='rgba(255,255,255,.11)';ctx.strokeStyle='rgba(255,255,255,.22)';} ctx.lineWidth=2; roundRect(w.x,w.y,w.w,w.h,8,true,true); if(w.needsShrink){ ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='900 11px system-ui'; ctx.textAlign='center'; ctx.save(); ctx.translate(w.x+w.w/2,w.y+w.h/2); ctx.rotate(-Math.PI/2); ctx.fillText('TINY VENT',0,4); ctx.restore(); } ctx.restore(); }); }
+  function drawSwitches(){ state.switches.forEach(sw=>{ ctx.save(); ctx.globalAlpha=sw.active?1:.72+Math.sin(state.labTime*5)*.15; ctx.fillStyle=sw.active?'rgba(114,255,182,.32)':'rgba(255,204,92,.28)'; ctx.strokeStyle=sw.active?'#72ffb6':'#ffcc5c'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(sw.x,sw.y,sw.r,0,TAU); ctx.fill(); ctx.stroke(); ctx.fillStyle='#fff'; ctx.font='900 17px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(sw.active?'✓':sw.label,sw.x,sw.y+1); ctx.restore(); }); }
+  function drawHazards(){ state.hazards.forEach(h=>{ ctx.save(); if(h.type==='spike'){ const p=1+Math.sin(h.pulse)*.07; ctx.translate(h.x,h.y); ctx.scale(p,p); ctx.fillStyle='rgba(255,107,122,.22)'; ctx.strokeStyle='#ff6b7a'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,h.r,0,TAU); ctx.fill(); ctx.stroke(); ctx.font=`${Math.max(18,h.r)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⚠️',0,1); } else { const x2=h.x+Math.cos(h.angle)*h.len,y2=h.y+Math.sin(h.angle)*h.len; ctx.lineCap='round'; ctx.lineWidth=h.frozen>0?8:12; ctx.strokeStyle=h.frozen>0?'rgba(120,183,255,.5)':'rgba(255,107,122,.32)'; ctx.beginPath(); ctx.moveTo(h.x,h.y); ctx.lineTo(x2,y2); ctx.stroke(); ctx.lineWidth=h.frozen>0?3:5; ctx.strokeStyle=h.frozen>0?'#78b7ff':'#ff3350'; ctx.beginPath(); ctx.moveTo(h.x,h.y); ctx.lineTo(x2,y2); ctx.stroke(); ctx.fillStyle='#1b1d2f'; ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(h.x,h.y,11,0,TAU); ctx.fill(); ctx.stroke(); if(h.frozen>0){ ctx.font='18px serif'; ctx.fillText('❄️',h.x-8,h.y+8); } } ctx.restore(); }); }
+  function drawOrbs(){ state.orbs.forEach(o=>{ const p=1+Math.sin(o.pulse)*.15; ctx.save(); ctx.translate(o.x,o.y); ctx.scale(p,p); const g=ctx.createRadialGradient(0,0,2,0,0,20); g.addColorStop(0,'#fff'); g.addColorStop(.35,'rgba(114,255,182,.95)'); g.addColorStop(1,'rgba(114,255,182,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,22,0,TAU); ctx.fill(); ctx.fillStyle='#72ffb6'; ctx.beginPath(); ctx.arc(0,0,o.r*.62,0,TAU); ctx.fill(); ctx.restore(); }); }
+  function drawPickups(){ state.pickups.forEach(p=>{ const info=POWERUPS[p.type]||POWERUPS.heart, pulse=1+Math.sin(p.pulse)*.12; ctx.save(); ctx.translate(p.x,p.y); ctx.scale(pulse,pulse); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.strokeStyle='rgba(255,255,255,.36)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,p.r+7,0,TAU); ctx.fill(); ctx.stroke(); ctx.font='24px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(info.emoji,0,1); ctx.restore(); }); }
+  function drawCrates(){ state.crates.forEach(k=>{ ctx.save(); ctx.translate(k.x,k.y); ctx.rotate(Math.sin(k.wobble)*(k.hp<k.maxHp?.08:.02)); let fill='#9a6b3e',icon='📦'; if(k.kind==='tower'){fill='#7666ff';icon='🏢';} if(k.kind==='battery'){fill='#17b7c9';icon='🔋';} if(k.kind==='snack'){fill='#eab308';icon='🍕';} if(k.kind==='sample'){fill='#22c55e';icon='🧪';} ctx.fillStyle=fill; ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=2; roundRect(-k.r,-k.r,k.r*2,k.r*2,7,true,true); ctx.font=`${k.r+5}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(icon,0,1); if(k.hp<k.maxHp) miniBar(-k.r,k.r+7,k.r*2,5,k.hp/k.maxHp,'#ffcc5c'); ctx.restore(); }); }
+  function drawEnemies(){ state.enemies.forEach(e=>{ ctx.save(); ctx.translate(e.x,e.y+Math.sin(e.bob)*2); const frozen=e.frozen>0; const base=frozen?'#93c5fd':e.type==='boss'?'#c026d3':e.type==='brute'?'#a855f7':e.type==='runner'?'#fb7185':e.type==='spitter'?'#22d3ee':'#ef4444'; ctx.save(); const sh=ctx.createRadialGradient(0,e.r*.9,6,0,e.r*.9,e.r*1.3); sh.addColorStop(0,'rgba(0,0,0,.28)'); sh.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=sh; ctx.beginPath(); ctx.ellipse(0,e.r*.92,e.r*1.1,e.r*.35,0,0,TAU); ctx.fill(); ctx.restore(); const rg=ctx.createRadialGradient(-e.r*.2,-e.r*.22,e.r*.15,0,0,e.r*1.15); rg.addColorStop(0,lighten(base,.18)); rg.addColorStop(.65,base); rg.addColorStop(1,lighten(base,-.05)); ctx.fillStyle=rg; ctx.strokeStyle=frozen?'#e0f2fe':'rgba(255,255,255,.25)'; ctx.lineWidth=e.type==='boss'?5:3; ctx.shadowColor=base; ctx.shadowBlur=e.type==='boss'?18:10; ctx.beginPath(); ctx.arc(0,0,e.r,0,TAU); ctx.fill(); ctx.shadowBlur=0; ctx.stroke(); ctx.save(); ctx.globalAlpha=.14; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-e.r*.16,-e.r*.2,e.r*.42,e.r*.16,-.35,0,TAU); ctx.fill(); ctx.restore(); ctx.font=`${e.r+8}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(frozen?'❄️':e.emoji,0,2); if(e.type==='boss'){ ctx.fillStyle='rgba(16,18,35,.72)'; ctx.strokeStyle='rgba(255,255,255,.12)'; roundRect(-60,-e.r-26,120,18,9,true,true); ctx.font='900 11px system-ui'; ctx.fillStyle='#fff'; ctx.fillText(`PROFESSOR BONK P${e.phase}`,0,-e.r-13); } if(e.hp<e.maxHp) miniBar(-e.r,e.r+8,e.r*2,5,e.hp/e.maxHp,'#ff6b7a'); ctx.restore(); }); }
+  function drawProjectiles(){ state.projectiles.forEach(p=>{ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.pulse); const c=p.type==='boss'?'#c78bff':'#78b7ff'; const rg=ctx.createRadialGradient(0,0,2,0,0,p.r+8); rg.addColorStop(0,'#fff'); rg.addColorStop(.4,c); rg.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(0,0,p.r+8,0,TAU); ctx.fill(); ctx.strokeStyle=c; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,p.r+4,0,TAU); ctx.stroke(); ctx.font=`${p.r+10}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.type==='boss'?'🟣':'💦',0,1); ctx.restore(); }); }
+  function drawPowerPreview(){ if(!state.running||state.c.powerCD>0) return; const c=state.c; ctx.save(); ctx.globalAlpha=.15+Math.sin(state.labTime*6)*.04; ctx.fillStyle='#72ffb6'; if(c.power==='no'){}; const p=state.creature.power; if(p==='Fire Breath'||p==='Freeze Ray'){ ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.arc(c.x,c.y,p==='Fire Breath'?210:230,c.angle-.55,c.angle+.55); ctx.closePath(); ctx.fill(); } else if(p==='Lightning'){ ctx.beginPath(); ctx.arc(c.x,c.y,260,0,TAU); ctx.fill(); } else if(p==='Gravity Burp'||p==='Bubble Shield'){ ctx.beginPath(); ctx.arc(c.x,c.y,p==='Gravity Burp'?160:95,0,TAU); ctx.fill(); } ctx.restore(); }
+  function drawCreature(x,y){ const c=state.creature,s=state.stats||calcStats(),r=creatureRadius(),head=PARTS.heads[c.head],body=PARTS.bodies[c.body],legs=PARTS.legs[c.legs],arms=PARTS.arms[c.arms],power=PARTS.powers[c.power],flash=state.c.invuln>0&&Math.sin(state.labTime*45)>0; const glow=c.power==='Fire Breath'?'#fb923c':c.power==='Freeze Ray'?'#7dd3fc':c.power==='Teleport'?'#c084fc':c.power==='Shrink'?'#72ffb6':c.power==='Lightning'?'#facc15':c.power==='Gravity Burp'?'#a78bfa':'#8af5ff'; ctx.save(); ctx.translate(x,y); ctx.rotate(state.c.angle); if(state.c.shrink>0) ctx.scale(.86,.86); ctx.save(); ctx.rotate(-state.c.angle); const shadow=ctx.createRadialGradient(0,r*.72,10,0,r*.72,r*1.25); shadow.addColorStop(0,'rgba(0,0,0,.32)'); shadow.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=shadow; ctx.beginPath(); ctx.ellipse(0,r*.82,r*1.18,r*.42,0,0,TAU); ctx.fill(); ctx.globalAlpha=.22; ctx.fillStyle=glow; ctx.beginPath(); ctx.ellipse(0,r*.78,r*1.06,r*.32,0,0,TAU); ctx.fill(); ctx.restore(); ctx.strokeStyle=legs.color; ctx.lineWidth=Math.max(4,r*.14); ctx.lineCap='round'; const lc=c.legs==='Spider'?6:2; ctx.save(); ctx.shadowColor=legs.color; ctx.shadowBlur=8; for(let i=0;i<lc;i++){ const side=i%2===0?-1:1, off=-r*.25+Math.floor(i/2)*r*.22; ctx.beginPath(); ctx.moveTo(off,side*r*.52); ctx.lineTo(off-r*.38,side*r*.86); ctx.stroke(); } ctx.restore(); if(c.legs==='Wheels'||c.legs==='Treads'){ ctx.fillStyle=legs.color; ctx.shadowColor=legs.color; ctx.shadowBlur=8; ctx.beginPath(); ctx.arc(-r*.25,-r*.78,r*.24,0,TAU); ctx.fill(); ctx.beginPath(); ctx.arc(-r*.25,r*.78,r*.24,0,TAU); ctx.fill(); ctx.shadowBlur=0; } if(c.legs==='Rocket Boots'){ ctx.font=`${r*.55}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🔥',-r*.75,-r*.55); ctx.fillText('🔥',-r*.75,r*.55); } ctx.font=`${r*.72}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(arms.emoji,r*.06,-r*1.03); ctx.save(); ctx.scale(1,-1); ctx.fillText(arms.emoji,r*.06,-r*1.03); ctx.restore(); const bg=ctx.createRadialGradient(-r*.25,-r*.3,r*.15,0,0,r*1.26); bg.addColorStop(0,lighten(body.color,.22)); bg.addColorStop(.55,body.color); bg.addColorStop(1,lighten(body.color,-.06)); ctx.save(); ctx.shadowColor=glow; ctx.shadowBlur=18; ctx.fillStyle=flash?'#fff':bg; ctx.strokeStyle=state.c.shield>0?'#72ffb6':'rgba(255,255,255,.48)'; ctx.lineWidth=state.c.shield>0?5:3; ctx.beginPath(); ctx.ellipse(0,0,r*.95,r*.78,0,0,TAU); ctx.fill(); ctx.shadowBlur=0; ctx.stroke(); ctx.restore(); ctx.save(); ctx.globalAlpha=.16; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-r*.14,-r*.22,r*.44,r*.18,-.42,0,TAU); ctx.fill(); ctx.restore(); if(state.c.shield>0){ ctx.save(); ctx.strokeStyle='rgba(114,255,182,.7)'; ctx.shadowColor='#72ffb6'; ctx.shadowBlur=14; ctx.lineWidth=4; ctx.globalAlpha=.34; ctx.beginPath(); ctx.arc(0,0,r*1.22,0,TAU); ctx.stroke(); ctx.restore(); } ctx.font=`${r*.58}px serif`; ctx.fillText(body.emoji,-r*.02,r*.08); if(state.c.powerCD<=0||state.c.shrink>0){ ctx.save(); ctx.globalAlpha=.95; ctx.shadowColor=glow; ctx.shadowBlur=14; ctx.fillText(power.emoji,-r*.42,-r*.42); ctx.restore(); } ctx.save(); ctx.shadowColor='rgba(255,255,255,.18)'; ctx.shadowBlur=8; ctx.font=`${r*.96}px serif`; ctx.fillText(head.emoji,r*.82,0); ctx.restore(); ctx.restore(); ctx.save(); ctx.textAlign='center'; const labelW=Math.max(66,ctx.measureText(c.name).width+18); ctx.fillStyle='rgba(14,17,32,.7)'; ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1.5; roundRect(x-labelW/2,y-r-39,labelW,22,11,true,true); ctx.font='900 13px system-ui'; ctx.fillStyle='rgba(255,255,255,.95)'; ctx.fillText(c.name,x,y-r-24); ctx.font='18px serif'; ctx.fillText(PARTS.personalities[c.personality].emoji,x,y-r-48); if(state.c.shrink>0){ ctx.font='900 11px system-ui'; ctx.fillStyle='#72ffb6'; ctx.fillText(`tiny ${state.c.shrink.toFixed(1)}s`,x,y+r+20); } if(state.c.shield>0){ ctx.font='900 11px system-ui'; ctx.fillStyle='#72ffb6'; ctx.fillText(`shield ${state.c.shield.toFixed(1)}s`,x,y+r+34); } ctx.restore(); }
+  function miniBar(x,y,w,h,pct,color){ ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(x,y,w,h); ctx.fillStyle=color; ctx.fillRect(x,y,w*clamp(pct,0,1),h); }
+  function drawParticles(){ state.particles.forEach(p=>{ ctx.save(); ctx.globalAlpha=clamp(p.life/p.maxLife,0,1); ctx.translate(p.x,p.y); ctx.rotate(p.angle); if(p.emoji){ ctx.font=`${Math.max(12,p.r*4)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.emoji,0,0); } else { ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,p.r,0,TAU); ctx.fill(); } ctx.restore(); }); }
+  function drawTexts(){ state.texts.forEach(t=>{ ctx.save(); ctx.globalAlpha=clamp(t.life,0,1); ctx.textAlign='center'; ctx.font='900 16px system-ui'; ctx.lineWidth=5; const fill=t.kind==='damage'?'#ff6b7a':t.kind==='coin'?'#ffcc5c':t.kind==='power'?'#78b7ff':t.kind==='score'?'#72ffb6':'#fff'; ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.fillStyle=fill; ctx.shadowColor=fill; ctx.shadowBlur=10; ctx.strokeText(t.text,t.x,t.y); ctx.fillText(t.text,t.x,t.y); ctx.restore(); }); }
+  function drawPause(){ ctx.save(); ctx.fillStyle='rgba(0,0,0,.58)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='rgba(18,21,37,.9)'; ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.lineWidth=2; roundRect(W/2-190,H/2-88,380,150,22,true,true); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.font='900 48px system-ui'; ctx.fillText('PAUSED',W/2,H/2-18); ctx.font='800 17px system-ui'; ctx.fillStyle='rgba(255,255,255,.78)'; ctx.fillText('Press P to continue, or Esc to retreat to the lab.',W/2,H/2+22); ctx.restore(); }
+  function drawResult(){ ctx.save(); ctx.fillStyle='rgba(0,0,0,.52)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='rgba(18,21,37,.92)'; ctx.strokeStyle=state.complete?'rgba(114,255,182,.38)':'rgba(255,107,122,.28)'; ctx.lineWidth=2; roundRect(W/2-250,H/2-95,500,170,24,true,true); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.font='900 46px system-ui'; ctx.fillText(state.complete?'TEST COMPLETE!':'TEST FAILED!',W/2,H/2-32); ctx.font='800 20px system-ui'; ctx.fillStyle='rgba(255,255,255,.82)'; ctx.fillText(`${state.complete?medalEmoji(state.lastMedal)+' '+state.lastMedal+' • ':''}Score ${state.score} • Coins earned ${state.roomCoins}`,W/2,H/2+6); ctx.font='700 15px system-ui'; ctx.fillStyle='rgba(255,255,255,.68)'; ctx.fillText('Returning to the lab...',W/2,H/2+38); ctx.restore(); }
+
+  function updateUI(force=false){ const c=state.c, hp=clamp(c.hp/c.maxHp,0,1); els.coinCount.textContent=state.coins; els.labLevel.textContent=labLevel(); els.bestText.textContent=bestFor(state.room)||'--'; els.objective.textContent=state.paused?'Paused. Press P to continue.':state.objective; els.hpText.textContent=`${Math.max(0,Math.ceil(c.hp))} / ${c.maxHp}`; els.hpBar.style.width=`${hp*100}%`; const boss=state.enemies.find(e=>e.type==='boss'); els.scoreText.textContent=state.room==='boss'?(boss?`${Math.ceil(Math.max(0,boss.hp))} HP`:'KO'):state.room==='battle'?`${state.kills}/${state.targetKills}`:`${state.score}`; els.comboText.textContent=state.combo>1?`x${state.combo}`:'--'; els.timerText.textContent=state.maxTimer?`${Math.ceil(state.timer)}s`:'--'; els.attackText.textContent=c.attackCD<=0?'Ready':`${c.attackCD.toFixed(1)}s`; els.dashText.textContent=c.dashCD<=0?'Ready':`${c.dashCD.toFixed(1)}s`; els.powerText.textContent=c.powerCD<=0?`${PARTS.powers[state.creature.power].emoji} Ready`:`${c.powerCD.toFixed(1)}s`; if(force){ updateShop(); updateMissionPanel(); updateRecordsPanel(); } }
+  function updateMissionPanel(){ els.missions.innerHTML=Object.entries(MISSIONS).map(([k,m])=>{ const done=!!state.missions[k]; return `<div class="mission-card ${done?'done':''}"><div class="mission-icon">${done?m.icon:'🔒'}</div><div><strong>${m.title}</strong><span>${m.desc}</span></div><div class="mission-reward">${done?'Done':'+'+m.reward}</div></div>`; }).join(''); }
+  function updateRecordsPanel(){ const rooms=['obstacle','battle','puzzle','destruction','survival','boss']; const cards=[]; rooms.forEach(r=>{ const val=state.best[`${state.difficulty}:${r}`]; if(val) cards.push(`<div class="record-card"><span>${roomTitle(r)}</span><strong>${val}</strong></div>`); }); els.records.innerHTML=cards.length?cards.join(''):'<div class="note">Clear a room to save best scores.</div>'; }
+  function bestFor(room){ if(!room||room==='lab'||room==='sandbox') return '--'; return state.best[`${state.difficulty}:${room}`] || '--'; }
+
+  function setupInput(){ window.addEventListener('keydown',e=>{ if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault(); state.keys.add(e.code); if(e.code==='Space') basicAttack(false); if(e.code==='KeyE') activatePower(); if(e.code==='KeyQ'||e.code==='ShiftLeft'||e.code==='ShiftRight') dash(); if(e.code==='KeyR') randomizeCreature(); if(e.code==='KeyP') togglePause(); if(e.code==='Escape') returnToLab(); }); window.addEventListener('keyup',e=>state.keys.delete(e.code)); canvas.addEventListener('mousemove',e=>{ const r=canvas.getBoundingClientRect(); state.mouse.x=(e.clientX-r.left)*(W/r.width); state.mouse.y=(e.clientY-r.top)*(H/r.height); }); canvas.addEventListener('click',e=>{ canvas.focus(); const r=canvas.getBoundingClientRect(); state.mouse.x=(e.clientX-r.left)*(W/r.width); state.mouse.y=(e.clientY-r.top)*(H/r.height); state.c.angle=angleTo(state.c.x,state.c.y,state.mouse.x,state.mouse.y); basicAttack(false); }); canvas.addEventListener('touchstart',e=>{ canvas.focus(); const t=e.touches[0],r=canvas.getBoundingClientRect(); state.mouse.x=(t.clientX-r.left)*(W/r.width); state.mouse.y=(t.clientY-r.top)*(H/r.height); state.c.angle=angleTo(state.c.x,state.c.y,state.mouse.x,state.mouse.y); basicAttack(false); },{passive:true}); }
+  function togglePause(){ if(!state.running||state.complete||state.failed) return; state.paused=!state.paused; state.keys.clear(); toast(state.paused?'Paused':'Back to mayhem'); updateUI(); }
+
+  function roundRect(x,y,w,h,r,fill,stroke){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); if(fill) ctx.fill(); if(stroke) ctx.stroke(); }
+  function lighten(hex,amt){ const n=parseInt(hex.replace('#',''),16), r=Math.min(255,((n>>16)&255)+Math.round(255*amt)), g=Math.min(255,((n>>8)&255)+Math.round(255*amt)), b=Math.min(255,(n&255)+Math.round(255*amt)); return `rgb(${r},${g},${b})`; }
+  function circleRect(cx,cy,r,rect){ const nx=clamp(cx,rect.x,rect.x+rect.w), ny=clamp(cy,rect.y,rect.y+rect.h); return dist(cx,cy,nx,ny)<r; }
+  function pointSeg(px,py,x1,y1,x2,y2){ const dx=x2-x1,dy=y2-y1; if(dx===0&&dy===0) return dist(px,py,x1,y1); let t=((px-x1)*dx+(py-y1)*dy)/(dx*dx+dy*dy); t=clamp(t,0,1); return dist(px,py,x1+t*dx,y1+t*dy); }
+  function medalEmoji(m){ return m==='Gold'?'🥇':m==='Silver'?'🥈':m==='Bronze'?'🥉':'🏁'; }
+  let audioCtx=null; function tone(freq,dur){ if(state.muted) return; try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.frequency.value=freq; o.type='square'; g.gain.value=.025; o.connect(g); g.connect(audioCtx.destination); o.start(); g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur); o.stop(audioCtx.currentTime+dur); } catch {} }
+
+  init();
+})();
+</script>
+</body>
+</html>

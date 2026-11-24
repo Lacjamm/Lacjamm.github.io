@@ -1,0 +1,3504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>God of Ruin - Destructible 3D City</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(10, 14, 28, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --text: #f1f5ff;
+      --muted: #a9b5d7;
+      --accent: #ffba52;
+      --danger: #ff6d6d;
+      --good: #86f0b0;
+      --blue: #77b7ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      user-select: none;
+    }
+
+    #game {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+      background: radial-gradient(circle at 50% 20%, #2c365d 0%, #0c1326 55%, #070a14 100%);
+    }
+
+    #hud {
+      position: fixed;
+      inset: 16px auto auto 16px;
+      width: min(420px, calc(100vw - 32px));
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+      pointer-events: auto;
+    }
+
+    .title {
+      padding: 14px 16px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .title h1 {
+      font-size: 1.2rem;
+      line-height: 1.1;
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .title small {
+      display: block;
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 0.85rem;
+    }
+
+    .city-pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff4d8;
+      white-space: nowrap;
+      font-size: 0.82rem;
+    }
+
+    #powers {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+
+    .power {
+      position: relative;
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      color: var(--text);
+      padding: 11px 10px 10px;
+      border-radius: 14px;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+      min-height: 84px;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .power:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.2); }
+    .power.active {
+      border-color: rgba(255, 188, 82, 0.72);
+      box-shadow: 0 0 0 1px rgba(255, 188, 82, 0.25) inset, 0 10px 24px rgba(255, 165, 77, 0.18);
+      background: linear-gradient(180deg, rgba(255, 188, 82, 0.16), rgba(255, 188, 82, 0.05));
+    }
+
+    .power .name { font-size: 0.95rem; font-weight: 700; }
+    .power .key { color: #ffe0aa; font-size: 0.77rem; margin-top: 3px; }
+    .power .desc { color: var(--muted); font-size: 0.72rem; line-height: 1.25; margin-top: 8px; }
+    .power .cd {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      padding: 0 6px;
+      display: grid;
+      place-items: center;
+      background: rgba(0,0,0,0.38);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #f5f7ff;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .power.on-cooldown {
+      opacity: 0.72;
+    }
+
+    #stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px 16px 16px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .stat .label { color: var(--muted); font-size: 0.78rem; }
+    .stat .value { font-size: 1.05rem; font-weight: 800; margin-top: 5px; }
+
+    #help {
+      padding: 12px 16px 14px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(0);
+      padding: 12px 16px;
+      border-radius: 999px;
+      background: rgba(12, 18, 35, 0.9);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.35);
+      opacity: 0;
+      transition: opacity 180ms ease, transform 180ms ease;
+      pointer-events: none;
+      max-width: calc(100vw - 24px);
+      text-align: center;
+      font-size: 0.92rem;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    #flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.9), rgba(140,180,255,0.3) 32%, rgba(255,255,255,0) 62%);
+      transition: opacity 80ms linear;
+      mix-blend-mode: screen;
+    }
+
+    #top-right {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .mini {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 10px 12px;
+      backdrop-filter: blur(12px);
+      min-width: 180px;
+    }
+
+    .mini strong { display: block; font-size: 0.88rem; }
+    .mini span { display: block; color: var(--muted); font-size: 0.77rem; margin-top: 3px; }
+
+    .title-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .hud-btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 0.83rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .hud-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,0.24);
+    }
+
+    .hud-btn.danger {
+      background: linear-gradient(180deg, rgba(255,115,115,0.18), rgba(255,115,115,0.07));
+      border-color: rgba(255,115,115,0.35);
+    }
+
+    .mini span + span {
+      margin-top: 6px;
+    }
+
+    #shopOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 14, 0.64);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      z-index: 20;
+    }
+
+    #shopOverlay.open {
+      display: flex;
+    }
+
+    #shopPanel {
+      width: min(1100px, calc(100vw - 24px));
+      max-height: min(92vh, 980px);
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .shop-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .shop-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      line-height: 1.1;
+    }
+
+    .shop-header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      max-width: 760px;
+    }
+
+    .shop-header-right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      position: sticky;
+      top: 0;
+    }
+
+    .section-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .loadout-bar {
+      margin-bottom: 16px;
+    }
+
+    #loadoutSlots {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .loadout-slot {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: left;
+      min-height: 78px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .loadout-slot:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .loadout-slot.active {
+      border-color: rgba(255, 188, 82, 0.72);
+      box-shadow: 0 0 0 1px rgba(255, 188, 82, 0.25) inset;
+      background: linear-gradient(180deg, rgba(255, 188, 82, 0.16), rgba(255, 188, 82, 0.05));
+    }
+
+    .loadout-slot .slot-key {
+      font-size: 0.72rem;
+      color: #ffe0aa;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .loadout-slot .slot-name {
+      display: block;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .loadout-slot .slot-meta {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      margin-top: 6px;
+      line-height: 1.3;
+    }
+
+    .shop-note {
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+
+    #shopGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .shop-card {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border-radius: 16px;
+      padding: 14px;
+      min-height: 188px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .shop-card.locked {
+      opacity: 0.88;
+    }
+
+    .shop-card .shop-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .shop-card h3 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .shop-card .tag {
+      font-size: 0.72rem;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.08);
+      white-space: nowrap;
+      color: #fff4d8;
+    }
+
+    .shop-card .shop-desc {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      flex: 1;
+    }
+
+    .shop-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .shop-stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 8px 9px;
+    }
+
+    .shop-stat .label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .shop-stat .value {
+      font-size: 0.86rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .shop-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .shop-action {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 10px;
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .shop-action:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,0.22);
+    }
+
+    .shop-action.primary {
+      background: linear-gradient(180deg, rgba(255,188,82,0.18), rgba(255,188,82,0.06));
+      border-color: rgba(255,188,82,0.36);
+    }
+
+    .shop-action:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .inline-note {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    @media (max-width: 800px) {
+      #hud { width: calc(100vw - 20px); inset: 10px auto auto 10px; }
+      #powers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      #top-right { top: auto; right: 10px; bottom: 84px; }
+      .title { flex-wrap: wrap; }
+      .title-actions { width: 100%; justify-content: space-between; }
+      #shopPanel { padding: 14px; }
+      .shop-header { flex-direction: column; }
+      .shop-header-right { width: 100%; justify-content: space-between; }
+      #shopGrid { grid-template-columns: 1fr; }
+      #loadoutSlots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="panel">
+      <div class="title">
+        <div>
+          <h1>God of Ruin</h1>
+          <small>Inspired by the godlike scale and collateral-damage tension of Megaton Rainfall, expanded into a mission-based divine sandbox.</small>
+        </div>
+        <div class="title-actions">
+          <button class="hud-btn" id="shopButton">Shop [B]</button>
+          <div class="city-pill" id="cityName">City</div>
+        </div>
+      </div>
+      <div id="powers"></div>
+    </div>
+
+    <div class="panel" id="stats"></div>
+
+    <div class="panel" id="help">
+      <strong style="color:#fff; display:block; margin-bottom:6px;">Controls</strong>
+      Left click casts your selected power. Right drag rotates the camera. Mouse wheel zooms. WASD pans your view. Press 1-6 to swap equipped powers. Press B to open the Divine Armory. Press R to rebuild the whole city.
+    </div>
+  </div>
+
+  <div id="top-right">
+    <div class="mini"><strong id="selectedLabel">Power: Meteor Strike</strong><span id="selectedDesc">Call a blazing stone from the heavens.</span></div>
+    <div class="mini"><strong id="missionLabel">Mission: Trial of Wrath</strong><span id="missionDesc">Destroy 12 city blocks within 75 seconds.</span><span id="missionTimer">75s • Reward 120 DP</span></div>
+    <div class="mini"><strong id="integrityLabel">Integrity: 100%</strong><span id="powerHint">The city trembles beneath your gaze.</span><span id="pointsLabel">Divine Points: 0 • Combo x1.0</span></div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="flash"></div>
+
+  <div id="shopOverlay" aria-hidden="true">
+    <div id="shopPanel" class="panel">
+      <div class="shop-header">
+        <div>
+          <h2>Divine Armory</h2>
+          <p id="shopSub">Unlock, upgrade, and equip powers. This prototype takes inspiration from Megaton Rainfall’s godlike scale and collateral-pressure fantasy, while staying fully original in code, structure, and presentation.</p>
+        </div>
+        <div class="shop-header-right">
+          <div class="city-pill" id="pointsPill">0 DP</div>
+          <button class="hud-btn danger" id="closeShop">Close</button>
+        </div>
+      </div>
+      <div class="loadout-bar">
+        <div class="section-label">Equipped loadout (keys 1-6)</div>
+        <div id="loadoutSlots"></div>
+      </div>
+      <div id="shopHint" class="shop-note">Earn Divine Points by completing missions, triggering chain collapses, and unleashing spectacular judgment.</div>
+      <div id="shopGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d', { alpha: false });
+      const powersEl = document.getElementById('powers');
+      const statsEl = document.getElementById('stats');
+      const toastEl = document.getElementById('toast');
+      const flashEl = document.getElementById('flash');
+      const cityNameEl = document.getElementById('cityName');
+      const selectedLabelEl = document.getElementById('selectedLabel');
+      const selectedDescEl = document.getElementById('selectedDesc');
+      const integrityLabelEl = document.getElementById('integrityLabel');
+      const powerHintEl = document.getElementById('powerHint');
+      const missionLabelEl = document.getElementById('missionLabel');
+      const missionDescEl = document.getElementById('missionDesc');
+      const missionTimerEl = document.getElementById('missionTimer');
+      const pointsLabelEl = document.getElementById('pointsLabel');
+      const shopOverlayEl = document.getElementById('shopOverlay');
+      const shopGridEl = document.getElementById('shopGrid');
+      const loadoutSlotsEl = document.getElementById('loadoutSlots');
+      const pointsPillEl = document.getElementById('pointsPill');
+      const shopButtonEl = document.getElementById('shopButton');
+      const closeShopEl = document.getElementById('closeShop');
+      const shopHintEl = document.getElementById('shopHint');
+
+      const TAU = Math.PI * 2;
+      const FOV = Math.PI / 3.1;
+      const NEAR = 0.1;
+      const MAX_DEBRIS = 1200;
+      const MAX_SPARKS = 700;
+      const MAX_FALLING_MASSES = 140;
+      const MAX_CITIZENS = 220;
+      const WORLD_UP = { x: 0, y: 1, z: 0 };
+      const STORAGE_KEY = 'god-of-ruin-prototype-v3';
+
+      const CITY_PREFIXES = ['Neo', 'Storm', 'Astra', 'Ash', 'Solar', 'Void', 'Cinder', 'Crown', 'Iron', 'Bright'];
+      const CITY_SUFFIXES = ['Haven', 'Spire', 'Harbor', 'Cross', 'Reach', 'Veld', 'Vista', 'Forge', 'Grove', 'Axis'];
+      const POWER_ORDER = ['meteor', 'lightning', 'shockwave', 'rebirth', 'tornado', 'singularity', 'solarbeam', 'orbital', 'cataclysm'];
+      const DEFAULT_LOADOUT = ['meteor', 'lightning', 'shockwave', 'rebirth', null, null];
+      const MAX_LEVEL = 4;
+      const STARTING_LEVELS = {
+        meteor: 1,
+        lightning: 1,
+        shockwave: 1,
+        rebirth: 1,
+        tornado: 0,
+        singularity: 0,
+        solarbeam: 0,
+        orbital: 0,
+        cataclysm: 0,
+      };
+      const MISSION_TYPES = ['wrath', 'storm', 'restoration', 'cascade', 'tempo', 'preservation'];
+
+      const abilities = {
+        meteor: {
+          name: 'Meteor Strike',
+          tier: 'Starter',
+          role: 'Siege',
+          cooldown: 0.55,
+          cooldownStep: 0.05,
+          minCooldown: 0.3,
+          radius: 31,
+          radiusStep: 5,
+          damage: 175,
+          damageStep: 42,
+          force: 22,
+          forceStep: 3,
+          description: 'Call a flaming meteor that smashes buildings in a huge blast.',
+          shopText: 'Large, simple, devastating. Great for wrecking districts and stacking combo pressure.',
+          hint: 'Best for collapsing whole districts.',
+          unlockCost: 0,
+          upgradeCosts: [60, 120, 220]
+        },
+        lightning: {
+          name: 'Chain Lightning',
+          tier: 'Starter',
+          role: 'Precision',
+          cooldown: 0.25,
+          cooldownStep: 0.03,
+          minCooldown: 0.12,
+          radius: 13,
+          radiusStep: 2,
+          damage: 240,
+          damageStep: 45,
+          force: 10,
+          forceStep: 1.2,
+          strikes: 3,
+          strikesStep: 1,
+          description: 'Instant sky-fire that punches straight through towers.',
+          shopText: 'Fast and surgical. Excellent for mission targets, rooftop cuts, and high-combo play.',
+          hint: 'Precise, fast, and brutal.',
+          unlockCost: 0,
+          upgradeCosts: [50, 110, 190]
+        },
+        shockwave: {
+          name: 'Shockwave',
+          tier: 'Starter',
+          role: 'Area',
+          cooldown: 0.75,
+          cooldownStep: 0.06,
+          minCooldown: 0.44,
+          radius: 34,
+          radiusStep: 6,
+          damage: 120,
+          damageStep: 24,
+          force: 10,
+          forceStep: 1.6,
+          speed: 88,
+          speedStep: 8,
+          description: 'A concussive blast that ripples outward and shatters blocks.',
+          shopText: 'Wide and reliable. Its expanding ring is ideal for softening multiple buildings at once.',
+          hint: 'Great for area clearing.',
+          unlockCost: 0,
+          upgradeCosts: [65, 125, 210]
+        },
+        rebirth: {
+          name: 'Rebirth',
+          tier: 'Starter',
+          role: 'Mercy',
+          cooldown: 1.2,
+          cooldownStep: 0.08,
+          minCooldown: 0.72,
+          radius: 28,
+          radiusStep: 6,
+          restoreStep: 3,
+          description: 'Restore a damaged district in a pulse of divine renewal.',
+          shopText: 'Undo your own disasters, preserve civilians, and complete mercy-focused trials.',
+          hint: 'Undo your wrath or sculpt the city.',
+          unlockCost: 0,
+          upgradeCosts: [70, 135, 235]
+        },
+        tornado: {
+          name: 'Tornado',
+          tier: 'Judgment',
+          role: 'Roaming',
+          cooldown: 2.8,
+          cooldownStep: 0.16,
+          minCooldown: 1.9,
+          radius: 15,
+          radiusStep: 2,
+          duration: 8.5,
+          durationStep: 1.6,
+          damage: 95,
+          damageStep: 18,
+          driftSpeed: 6.4,
+          driftSpeedStep: 0.6,
+          description: 'Spawn a roaming vortex that chews apart rooftops over time.',
+          shopText: 'A wandering storm engine that feeds on height and leaves spinning debris fields behind.',
+          hint: 'Let it wander and harvest chaos.',
+          unlockCost: 180,
+          upgradeCosts: [120, 200, 320]
+        },
+        singularity: {
+          name: 'Singularity',
+          tier: 'Judgment',
+          role: 'Control',
+          cooldown: 3.8,
+          cooldownStep: 0.22,
+          minCooldown: 2.6,
+          radius: 22,
+          radiusStep: 3,
+          duration: 7.6,
+          durationStep: 1.2,
+          damage: 135,
+          damageStep: 24,
+          description: 'Create a black hole that drags debris and devours structures.',
+          shopText: 'A sustained gravity well that shreds weakened districts and vacuums rubble into oblivion.',
+          hint: 'Deadly sustained destruction.',
+          unlockCost: 320,
+          upgradeCosts: [160, 260, 400]
+        },
+        solarbeam: {
+          name: 'Solar Lance',
+          tier: 'Ascendant',
+          role: 'Beam',
+          cooldown: 2.2,
+          cooldownStep: 0.14,
+          minCooldown: 1.25,
+          radius: 10,
+          radiusStep: 1.4,
+          duration: 1.1,
+          durationStep: 0.18,
+          damage: 260,
+          damageStep: 50,
+          force: 12,
+          forceStep: 1.5,
+          description: 'Channel a vertical pillar of starfire that bores through a district.',
+          shopText: 'Concentrated divine heat. Melts towers, glows like a miniature sun, and chains missions quickly.',
+          hint: 'A focused beam for elite demolition.',
+          unlockCost: 260,
+          upgradeCosts: [180, 280, 420]
+        },
+        orbital: {
+          name: 'Orbital Lance',
+          tier: 'Ascendant',
+          role: 'Barrage',
+          cooldown: 4.8,
+          cooldownStep: 0.28,
+          minCooldown: 3.2,
+          radius: 14,
+          radiusStep: 2,
+          damage: 210,
+          damageStep: 36,
+          force: 20,
+          forceStep: 2,
+          blasts: 3,
+          blastsStep: 1,
+          description: 'Command an orbital strike sequence that chains across nearby blocks.',
+          shopText: 'This is the “city section deleted” button. Delayed, theatrical, and extremely mission-efficient.',
+          hint: 'Layered strikes from high above.',
+          unlockCost: 480,
+          upgradeCosts: [220, 360, 520]
+        },
+        cataclysm: {
+          name: 'Worldbreaker',
+          tier: 'Elder',
+          role: 'Apocalypse',
+          cooldown: 7.2,
+          cooldownStep: 0.38,
+          minCooldown: 4.8,
+          radius: 22,
+          radiusStep: 3.5,
+          damage: 220,
+          damageStep: 42,
+          force: 24,
+          forceStep: 2.5,
+          meteors: 5,
+          meteorsStep: 1,
+          description: 'Summon a ruinous cluster impact that levels an entire quarter of the city.',
+          shopText: 'An endgame catastrophe. Massive blast radius, repeated meteor impacts, and chain-failure potential.',
+          hint: 'Overkill made manifest.',
+          unlockCost: 750,
+          upgradeCosts: [360, 540, 760]
+        }
+      };
+
+      const state = {
+        width: 0,
+        height: 0,
+        halfW: 0,
+        halfH: 0,
+        dpr: Math.min(2, window.devicePixelRatio || 1),
+        time: 0,
+        lastTimestamp: 0,
+        worldSeed: 1,
+        cityName: 'Astra Haven',
+        targetPoint: { x: 0, y: 0, z: 0 },
+        mouse: { x: 0, y: 0, nx: 0, ny: 0, inside: false },
+        pointerOverUi: false,
+        rightDrag: false,
+        lastPointer: { x: 0, y: 0 },
+        keys: new Set(),
+        selectedSlot: 0,
+        selected: DEFAULT_LOADOUT[0],
+        cooldowns: Object.fromEntries(POWER_ORDER.map((id) => [id, 0])),
+        shopOpen: false,
+        statsRefresh: 0,
+        toastTimer: 0,
+        uiNeedsRefresh: true,
+        shopNeedsRefresh: true,
+        saveTimer: 0,
+        flash: 0,
+        combo: {
+          count: 0,
+          timer: 0,
+          multiplier: 1,
+          lastReason: ''
+        },
+        audio: {
+          ctx: null,
+          master: null,
+          ambience: null,
+          enabled: false
+        },
+        player: {
+          divinePoints: 120,
+          totalPointsEarned: 120,
+          missionStreak: 0,
+          highestCombo: 1,
+          powerLevels: { ...STARTING_LEVELS },
+          loadout: [...DEFAULT_LOADOUT],
+        },
+        mission: {
+          active: null,
+          queueDelay: 2,
+          completedCount: 0,
+          failedCount: 0,
+        },
+        camera: {
+          target: { x: 0, y: 18, z: 0 },
+          yaw: 0.75,
+          pitch: 0.72,
+          radius: 220,
+          shake: 0
+        },
+        renderCamera: {
+          pos: { x: 0, y: 0, z: 0 },
+          right: { x: 1, y: 0, z: 0 },
+          up: { x: 0, y: 1, z: 0 },
+          forward: { x: 0, y: 0, z: 1 },
+          focal: 1
+        },
+        world: {
+          size: 0,
+          chunks: [],
+          buildings: [],
+          groundTiles: [],
+          roadTiles: [],
+          decor: [],
+          citizens: [],
+          totalChunks: 0,
+          aliveChunks: 0,
+          totalPopulation: 0,
+          lostPopulation: 0,
+          streetPopulation: 0,
+          streetCasualties: 0,
+          destroyedCount: 0,
+          restoredCount: 0,
+          collapsedBuildings: 0,
+          chainEvents: 0,
+          panicLevel: 0,
+        },
+        projectiles: [],
+        effects: [],
+        debris: [],
+        sparks: [],
+        fallingMasses: [],
+        pending: [],
+      };
+
+      function mulberry32(seed) {
+        let t = seed >>> 0;
+        return function() {
+          t += 0x6D2B79F5;
+          let r = Math.imul(t ^ (t >>> 15), 1 | t);
+          r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+          return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function clamp(v, min, max) { return v < min ? min : v > max ? max : v; }
+      function lerp(a, b, t) { return a + (b - a) * t; }
+      function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+      function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
+      function smoothstep(edge0, edge1, x) {
+        const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+        return t * t * (3 - 2 * t);
+      }
+      function randRange(rng, min, max) { return min + (max - min) * rng(); }
+      function randInt(rng, min, max) { return Math.floor(randRange(rng, min, max + 1)); }
+      function choice(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+      function formatInt(n) { return Math.round(n).toLocaleString(); }
+
+      function hsl(h, s, l, a = 1) {
+        return `hsla(${((h % 360) + 360) % 360}, ${clamp(s, 0, 100)}%, ${clamp(l, 0, 100)}%, ${a})`;
+      }
+
+      function vec(x = 0, y = 0, z = 0) { return { x, y, z }; }
+      function vAdd(a, b) { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
+      function vSub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+      function vScale(a, s) { return { x: a.x * s, y: a.y * s, z: a.z * s }; }
+      function vDot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+      function vCross(a, b) {
+        return {
+          x: a.y * b.z - a.z * b.y,
+          y: a.z * b.x - a.x * b.z,
+          z: a.x * b.y - a.y * b.x
+        };
+      }
+      function vLen(a) { return Math.hypot(a.x, a.y, a.z); }
+      function vNorm(a) {
+        const len = vLen(a) || 1;
+        return { x: a.x / len, y: a.y / len, z: a.z / len };
+      }
+
+
+      function safeLocalStorage() {
+        try {
+          return window.localStorage;
+        } catch (err) {
+          return null;
+        }
+      }
+
+      function getPowerLevel(id) {
+        return state.player.powerLevels[id] || 0;
+      }
+
+      function isPowerOwned(id) {
+        return getPowerLevel(id) > 0;
+      }
+
+      function nextUpgradeCost(id) {
+        const level = getPowerLevel(id);
+        if (level <= 0 || level >= MAX_LEVEL) return null;
+        return abilities[id].upgradeCosts[level - 1] ?? null;
+      }
+
+      function getAbility(id, previewLevel = null) {
+        const base = abilities[id];
+        const ownedLevel = getPowerLevel(id);
+        const level = Math.max(1, (previewLevel ?? ownedLevel) || 1);
+        return {
+          ...base,
+          id,
+          level,
+          owned: ownedLevel > 0,
+          cooldown: Math.max(base.minCooldown ?? 0.15, base.cooldown - (base.cooldownStep || 0) * (level - 1)),
+          radius: (base.radius || 0) + (base.radiusStep || 0) * (level - 1),
+          damage: (base.damage || 0) + (base.damageStep || 0) * (level - 1),
+          force: (base.force || 0) + (base.forceStep || 0) * (level - 1),
+          duration: (base.duration || 0) + (base.durationStep || 0) * (level - 1),
+          speed: (base.speed || 0) + (base.speedStep || 0) * (level - 1),
+          strikes: Math.round((base.strikes || 0) + (base.strikesStep || 0) * (level - 1)),
+          blasts: Math.round((base.blasts || 0) + (base.blastsStep || 0) * (level - 1)),
+          meteors: Math.round((base.meteors || 0) + (base.meteorsStep || 0) * (level - 1)),
+          driftSpeed: (base.driftSpeed || 0) + (base.driftSpeedStep || 0) * (level - 1),
+        };
+      }
+
+      function currentPowerId() {
+        return state.player.loadout[state.selectedSlot] || DEFAULT_LOADOUT.find(Boolean);
+      }
+
+      function syncSelection() {
+        ensureValidLoadout();
+        state.selected = currentPowerId() || 'meteor';
+        if (!isPowerOwned(state.selected) && DEFAULT_LOADOUT[0]) {
+          state.selectedSlot = 0;
+          state.selected = DEFAULT_LOADOUT[0];
+        }
+        state.uiNeedsRefresh = true;
+      }
+
+      function ensureValidLoadout() {
+        for (let i = 0; i < state.player.loadout.length; i++) {
+          const id = state.player.loadout[i];
+          if (id && !isPowerOwned(id)) state.player.loadout[i] = null;
+        }
+        for (const starter of DEFAULT_LOADOUT) {
+          if (!starter) continue;
+          if (!state.player.loadout.includes(starter) && isPowerOwned(starter)) {
+            const idx = state.player.loadout.indexOf(null);
+            if (idx >= 0) state.player.loadout[idx] = starter;
+          }
+        }
+        while (state.player.loadout.length < 6) state.player.loadout.push(null);
+        state.selectedSlot = clamp(state.selectedSlot, 0, 5);
+      }
+
+      function selectSlot(index) {
+        const next = clamp(index, 0, 5);
+        if (!state.shopOpen && !state.player.loadout[next]) {
+          showToast(`Slot ${next + 1} is empty. Open the Divine Armory to equip a power there.`);
+          return;
+        }
+        state.selectedSlot = next;
+        syncSelection();
+      }
+
+      function findEquippedSlot(id) {
+        return state.player.loadout.indexOf(id);
+      }
+
+      function selectAbility(id) {
+        if (!abilities[id]) return;
+        const equippedSlot = findEquippedSlot(id);
+        if (equippedSlot >= 0) {
+          selectSlot(equippedSlot);
+          return;
+        }
+        if (isPowerOwned(id)) {
+          state.player.loadout[state.selectedSlot] = id;
+          queueSave();
+          state.shopNeedsRefresh = true;
+          syncSelection();
+          showToast(`${abilities[id].name} equipped to slot ${state.selectedSlot + 1}.`);
+        }
+      }
+
+      function loadProfile() {
+        const storage = safeLocalStorage();
+        if (!storage) return;
+        try {
+          const raw = storage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          if (typeof data.divinePoints === 'number') state.player.divinePoints = data.divinePoints;
+          if (typeof data.totalPointsEarned === 'number') state.player.totalPointsEarned = data.totalPointsEarned;
+          if (typeof data.missionStreak === 'number') state.player.missionStreak = data.missionStreak;
+          if (typeof data.highestCombo === 'number') state.player.highestCombo = data.highestCombo;
+          if (data.powerLevels && typeof data.powerLevels === 'object') {
+            state.player.powerLevels = { ...STARTING_LEVELS, ...data.powerLevels };
+          }
+          if (Array.isArray(data.loadout)) {
+            state.player.loadout = data.loadout.slice(0, 6);
+          }
+        } catch (err) {
+          console.warn('Profile load failed:', err);
+        }
+        ensureValidLoadout();
+        syncSelection();
+      }
+
+      function queueSave() {
+        state.saveTimer = 0.15;
+      }
+
+      function saveProfile() {
+        const storage = safeLocalStorage();
+        if (!storage) return;
+        const payload = {
+          divinePoints: state.player.divinePoints,
+          totalPointsEarned: state.player.totalPointsEarned,
+          missionStreak: state.player.missionStreak,
+          highestCombo: state.player.highestCombo,
+          powerLevels: state.player.powerLevels,
+          loadout: state.player.loadout,
+        };
+        try {
+          storage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch (err) {
+          console.warn('Profile save failed:', err);
+        }
+      }
+
+      function getComboMultiplier() {
+        return state.combo.multiplier;
+      }
+
+      function bumpCombo(amount = 1, reason = 'destruction') {
+        state.combo.count = clamp(state.combo.count + amount, 0, 40);
+        state.combo.timer = 3.25;
+        state.combo.multiplier = 1 + Math.min(2.4, state.combo.count * 0.08);
+        state.combo.lastReason = reason;
+        state.player.highestCombo = Math.max(state.player.highestCombo, state.combo.multiplier);
+        state.uiNeedsRefresh = true;
+      }
+
+      function decayCombo(dt) {
+        if (state.combo.timer > 0) {
+          state.combo.timer -= dt;
+          if (state.combo.timer <= 0) {
+            state.combo.count = 0;
+            state.combo.multiplier = 1;
+            state.combo.lastReason = '';
+            state.uiNeedsRefresh = true;
+          }
+        }
+      }
+
+      function awardDivinePoints(baseAmount, reason = '') {
+        if (baseAmount <= 0) return;
+        const amount = Math.max(1, Math.round(baseAmount * getComboMultiplier()));
+        state.player.divinePoints += amount;
+        state.player.totalPointsEarned += amount;
+        noteMissionEvent('points', { amount, reason });
+        state.shopNeedsRefresh = true;
+        state.uiNeedsRefresh = true;
+        queueSave();
+      }
+
+      function spendDivinePoints(amount) {
+        if (state.player.divinePoints < amount) return false;
+        state.player.divinePoints -= amount;
+        state.shopNeedsRefresh = true;
+        state.uiNeedsRefresh = true;
+        queueSave();
+        return true;
+      }
+
+      function unlockPower(id) {
+        const ability = abilities[id];
+        if (!ability || isPowerOwned(id) || ability.unlockCost <= 0) return false;
+        if (!spendDivinePoints(ability.unlockCost)) {
+          showToast(`Not enough Divine Points for ${ability.name}.`);
+          return false;
+        }
+        state.player.powerLevels[id] = 1;
+        const emptySlot = state.player.loadout.indexOf(null);
+        if (emptySlot >= 0) state.player.loadout[emptySlot] = id;
+        else state.player.loadout[state.selectedSlot] = id;
+        state.shopNeedsRefresh = true;
+        syncSelection();
+        ensureAudio();
+        playTone({ freq: 380, freq2: 760, duration: 0.16, type: 'triangle', gain: 0.12 });
+        showToast(`${ability.name} unlocked.`);
+        noteMissionEvent('unlock', { id });
+        queueSave();
+        return true;
+      }
+
+      function upgradePower(id) {
+        const ability = abilities[id];
+        if (!ability || !isPowerOwned(id)) return false;
+        const cost = nextUpgradeCost(id);
+        if (!cost) {
+          showToast(`${ability.name} is already at max level.`);
+          return false;
+        }
+        if (!spendDivinePoints(cost)) {
+          showToast(`Not enough Divine Points to upgrade ${ability.name}.`);
+          return false;
+        }
+        state.player.powerLevels[id] += 1;
+        state.shopNeedsRefresh = true;
+        state.uiNeedsRefresh = true;
+        ensureAudio();
+        playTone({ freq: 480, freq2: 960, duration: 0.18, type: 'triangle', gain: 0.12 });
+        showToast(`${ability.name} upgraded to level ${state.player.powerLevels[id]}.`);
+        queueSave();
+        return true;
+      }
+
+      function equipPower(id) {
+        if (!isPowerOwned(id)) return false;
+        state.player.loadout[state.selectedSlot] = id;
+        state.shopNeedsRefresh = true;
+        syncSelection();
+        showToast(`${abilities[id].name} equipped to slot ${state.selectedSlot + 1}.`);
+        queueSave();
+        return true;
+      }
+
+      function formatMissionProgress(mission) {
+        if (!mission) return 'No trial active';
+        if (mission.type === 'preservation') {
+          const casualties = state.world.streetCasualties - mission.baselineStreetCasualties;
+          return `${mission.progress}/${mission.goal} blocks • ${casualties}/${mission.casualtyAllowance} street casualties`;
+        }
+        if (mission.type === 'tempo') return `${formatInt(mission.progress)}/${formatInt(mission.goal)} DP`;
+        return `${mission.progress}/${mission.goal}`;
+      }
+
+      function buildMission(type) {
+        const difficulty = state.mission.completedCount;
+        if (type === 'wrath') {
+          const goal = 14 + difficulty * 2;
+          return {
+            type,
+            title: 'Trial of Wrath',
+            description: `Destroy ${goal} city blocks before the heavens cool.`,
+            timeLeft: 78,
+            reward: 140 + difficulty * 25,
+            goal,
+            progress: 0,
+          };
+        }
+        if (type === 'storm') {
+          const preferred = isPowerOwned('solarbeam') && Math.random() < 0.4 ? 'solarbeam' : 'lightning';
+          const goal = preferred === 'solarbeam' ? 8 + difficulty : 10 + difficulty * 2;
+          return {
+            type,
+            ability: preferred,
+            title: preferred === 'solarbeam' ? 'Solar Judgment' : 'Storm Conductor',
+            description: `Use ${abilities[preferred].name} to destroy ${goal} city blocks.`,
+            timeLeft: preferred === 'solarbeam' ? 68 : 74,
+            reward: 180 + difficulty * 28,
+            goal,
+            progress: 0,
+          };
+        }
+        if (type === 'restoration') {
+          const goal = 8 + difficulty;
+          return {
+            type,
+            title: 'Mercy After Ruin',
+            description: `Restore ${goal} destroyed blocks with Rebirth.`,
+            timeLeft: 72,
+            reward: 170 + difficulty * 24,
+            goal,
+            progress: 0,
+          };
+        }
+        if (type === 'cascade') {
+          const goal = 2 + Math.floor(difficulty * 0.65);
+          return {
+            type,
+            title: 'Chain of Collapse',
+            description: `Trigger ${goal} large building failures.`,
+            timeLeft: 80,
+            reward: 220 + difficulty * 36,
+            goal,
+            progress: 0,
+          };
+        }
+        if (type === 'tempo') {
+          const goal = 240 + difficulty * 65;
+          return {
+            type,
+            title: 'Sovereign Tempo',
+            description: `Earn ${goal} Divine Points before the trial ends.`,
+            timeLeft: 64,
+            reward: 210 + difficulty * 28,
+            goal,
+            progress: 0,
+          };
+        }
+        const goal = 10 + difficulty;
+        return {
+          type: 'preservation',
+          title: 'Spare the Streets',
+          description: `Destroy ${goal} blocks while keeping street casualties under control.`,
+          timeLeft: 70,
+          reward: 240 + difficulty * 30,
+          goal,
+          progress: 0,
+          casualtyAllowance: 12 + difficulty * 2,
+          baselineStreetCasualties: state.world.streetCasualties,
+        };
+      }
+
+      function beginMission() {
+        const owned = POWER_ORDER.filter(isPowerOwned);
+        const pool = MISSION_TYPES.filter((type) => {
+          if (type === 'storm') return owned.includes('lightning') || owned.includes('solarbeam');
+          return true;
+        });
+        state.mission.active = buildMission(choice(Math.random, pool));
+        state.mission.queueDelay = 0;
+        state.uiNeedsRefresh = true;
+      }
+
+      function completeMission() {
+        const mission = state.mission.active;
+        if (!mission) return;
+        state.mission.active = null;
+        awardDivinePoints(mission.reward, 'mission');
+        state.player.missionStreak += 1;
+        state.mission.completedCount += 1;
+        showToast(`${mission.title} complete. +${mission.reward} Divine Points.`);
+        ensureAudio();
+        playTone({ freq: 520, freq2: 780, duration: 0.22, type: 'triangle', gain: 0.16 });
+        state.mission.queueDelay = 4.5;
+        queueSave();
+      }
+
+      function failMission(reason = 'Mission failed.') {
+        const mission = state.mission.active;
+        if (!mission) return;
+        state.player.missionStreak = 0;
+        state.mission.failedCount += 1;
+        showToast(reason);
+        ensureAudio();
+        playTone({ freq: 180, freq2: 120, duration: 0.18, type: 'sawtooth', gain: 0.09 });
+        state.mission.active = null;
+        state.mission.queueDelay = 3.6;
+        queueSave();
+      }
+
+      function noteMissionEvent(type, payload = {}) {
+        const mission = state.mission.active;
+        if (!mission) return;
+        if (type === 'destroy') {
+          if (mission.type === 'wrath') mission.progress += payload.count || 1;
+          if (mission.type === 'storm' && payload.ability === mission.ability) mission.progress += payload.count || 1;
+          if (mission.type === 'preservation') mission.progress += payload.count || 1;
+        }
+        if (type === 'restore' && mission.type === 'restoration') mission.progress += payload.count || 1;
+        if (type === 'collapse' && mission.type === 'cascade') mission.progress += payload.count || 1;
+        if (type === 'points' && mission.type === 'tempo') mission.progress += payload.amount || 0;
+        if (mission.type === 'preservation') {
+          const casualties = state.world.streetCasualties - mission.baselineStreetCasualties;
+          if (casualties > mission.casualtyAllowance) {
+            failMission('Mission failed: too many street casualties.');
+            return;
+          }
+        }
+        if (mission.progress >= mission.goal) completeMission();
+        state.uiNeedsRefresh = true;
+      }
+
+      function updateMission(dt) {
+        if (!state.mission.active) {
+          state.mission.queueDelay -= dt;
+          if (state.mission.queueDelay <= 0) beginMission();
+          return;
+        }
+        state.mission.active.timeLeft -= dt;
+        if (state.mission.active.timeLeft <= 0) {
+          failMission('Mission failed: time expired.');
+        }
+      }
+
+      function ensureAudio() {
+        if (state.audio.enabled) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        try {
+          const audioCtx = new AudioCtx();
+          const master = audioCtx.createGain();
+          master.gain.value = 0.12;
+          master.connect(audioCtx.destination);
+          state.audio.ctx = audioCtx;
+          state.audio.master = master;
+          state.audio.enabled = true;
+        } catch (err) {
+          console.warn('Audio unavailable:', err);
+        }
+      }
+
+      function playTone({ freq = 220, freq2 = null, duration = 0.12, type = 'sine', gain = 0.08, when = 0 }) {
+        if (!state.audio.enabled || !state.audio.ctx || !state.audio.master) return;
+        const t0 = state.audio.ctx.currentTime + when;
+        const osc = state.audio.ctx.createOscillator();
+        const g = state.audio.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        if (freq2 !== null) osc.frequency.exponentialRampToValueAtTime(Math.max(30, freq2), t0 + duration);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), t0 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+        osc.connect(g);
+        g.connect(state.audio.master);
+        osc.start(t0);
+        osc.stop(t0 + duration + 0.02);
+      }
+
+      function playNoise({ duration = 0.12, gain = 0.05, lowpass = 1600 }) {
+        if (!state.audio.enabled || !state.audio.ctx || !state.audio.master) return;
+        const length = Math.max(128, Math.floor(state.audio.ctx.sampleRate * duration));
+        const buffer = state.audio.ctx.createBuffer(1, length, state.audio.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+        const source = state.audio.ctx.createBufferSource();
+        source.buffer = buffer;
+        const filter = state.audio.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = lowpass;
+        const g = state.audio.ctx.createGain();
+        const now = state.audio.ctx.currentTime;
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        source.connect(filter);
+        filter.connect(g);
+        g.connect(state.audio.master);
+        source.start(now);
+        source.stop(now + duration + 0.02);
+      }
+
+      function playPowerSound(id) {
+        ensureAudio();
+        if (!state.audio.enabled) return;
+        if (id === 'meteor' || id === 'cataclysm') {
+          playTone({ freq: 120, freq2: 48, duration: 0.28, type: 'sawtooth', gain: 0.09 });
+          playNoise({ duration: 0.18, gain: 0.03, lowpass: 800 });
+        } else if (id === 'lightning' || id === 'orbital') {
+          playTone({ freq: 880, freq2: 260, duration: 0.12, type: 'square', gain: 0.05 });
+          playNoise({ duration: 0.08, gain: 0.03, lowpass: 2800 });
+        } else if (id === 'shockwave') {
+          playTone({ freq: 180, freq2: 70, duration: 0.22, type: 'triangle', gain: 0.06 });
+        } else if (id === 'tornado') {
+          playTone({ freq: 220, freq2: 130, duration: 0.38, type: 'sine', gain: 0.05 });
+        } else if (id === 'singularity') {
+          playTone({ freq: 90, freq2: 30, duration: 0.4, type: 'triangle', gain: 0.08 });
+        } else if (id === 'solarbeam') {
+          playTone({ freq: 420, freq2: 980, duration: 0.24, type: 'sawtooth', gain: 0.06 });
+        } else if (id === 'rebirth') {
+          playTone({ freq: 420, freq2: 660, duration: 0.22, type: 'triangle', gain: 0.05 });
+        }
+      }
+
+      function toggleShop(force = !state.shopOpen) {
+        state.shopOpen = !!force;
+        shopOverlayEl.classList.toggle('open', state.shopOpen);
+        shopOverlayEl.setAttribute('aria-hidden', state.shopOpen ? 'false' : 'true');
+        if (state.shopOpen) renderShop();
+      }
+
+      function renderLoadoutUi() {
+        powersEl.innerHTML = '';
+        for (let i = 0; i < 6; i++) {
+          const id = state.player.loadout[i];
+          const button = document.createElement('button');
+          button.className = 'power';
+          button.dataset.slot = String(i);
+          if (i === state.selectedSlot) button.classList.add('active');
+          if (id) {
+            const ability = getAbility(id);
+            button.innerHTML = `
+              <div class="name">${ability.name}</div>
+              <div class="key">Slot ${i + 1} • Lv ${ability.level}</div>
+              <div class="desc">${ability.description}</div>
+              <div class="cd">0</div>
+            `;
+          } else {
+            button.innerHTML = `
+              <div class="name">Empty Slot</div>
+              <div class="key">Slot ${i + 1}</div>
+              <div class="desc">Open the Divine Armory and equip a power here.</div>
+              <div class="cd">-</div>
+            `;
+          }
+          button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            selectSlot(i);
+          });
+          button.addEventListener('pointerdown', (event) => event.stopPropagation());
+          powersEl.appendChild(button);
+        }
+      }
+
+      function renderShop() {
+        pointsPillEl.textContent = `${formatInt(state.player.divinePoints)} DP`;
+        loadoutSlotsEl.innerHTML = '';
+        for (let i = 0; i < 6; i++) {
+          const id = state.player.loadout[i];
+          const slot = document.createElement('button');
+          slot.className = 'loadout-slot';
+          if (i === state.selectedSlot) slot.classList.add('active');
+          slot.innerHTML = `
+            <span class="slot-key">Key ${i + 1}</span>
+            <span class="slot-name">${id ? abilities[id].name : 'Empty Slot'}</span>
+            <span class="slot-meta">${id ? `Level ${getPowerLevel(id)} • ${abilities[id].role}` : 'Select this slot, then equip a power below.'}</span>
+          `;
+          slot.addEventListener('click', () => {
+            selectSlot(i);
+            renderShop();
+          });
+          loadoutSlotsEl.appendChild(slot);
+        }
+
+        shopGridEl.innerHTML = '';
+        for (const id of POWER_ORDER) {
+          const base = abilities[id];
+          const ability = getAbility(id);
+          const owned = isPowerOwned(id);
+          const equipped = findEquippedSlot(id) >= 0;
+          const unlockCost = base.unlockCost;
+          const upgradeCost = nextUpgradeCost(id);
+          const card = document.createElement('div');
+          card.className = `shop-card ${owned ? 'owned' : 'locked'}`;
+          card.innerHTML = `
+            <div class="shop-top">
+              <div>
+                <h3>${base.name}</h3>
+                <div class="inline-note">${base.tier} • ${base.role}</div>
+              </div>
+              <div class="tag">${owned ? `Lv ${getPowerLevel(id)}/${MAX_LEVEL}` : `${formatInt(unlockCost)} DP`}</div>
+            </div>
+            <div class="shop-desc">${base.shopText}</div>
+            <div class="shop-stats">
+              <div class="shop-stat"><div class="label">Cooldown</div><div class="value">${ability.cooldown.toFixed(ability.cooldown < 1 ? 2 : 1)}s</div></div>
+              <div class="shop-stat"><div class="label">Radius</div><div class="value">${ability.radius ? ability.radius.toFixed(ability.radius < 10 ? 1 : 0) : '—'}</div></div>
+              <div class="shop-stat"><div class="label">Power</div><div class="value">${ability.damage ? formatInt(ability.damage) : 'Restoration'}</div></div>
+              <div class="shop-stat"><div class="label">Loadout</div><div class="value">${equipped ? `Slot ${findEquippedSlot(id) + 1}` : 'Unequipped'}</div></div>
+            </div>
+            <div class="shop-actions"></div>
+          `;
+          const actions = card.querySelector('.shop-actions');
+          if (!owned) {
+            const unlock = document.createElement('button');
+            unlock.className = 'shop-action primary';
+            unlock.textContent = `Unlock ${formatInt(unlockCost)} DP`;
+            unlock.disabled = state.player.divinePoints < unlockCost;
+            unlock.addEventListener('click', () => {
+              if (unlockPower(id)) renderShop();
+            });
+            actions.appendChild(unlock);
+          } else {
+            const equipBtn = document.createElement('button');
+            equipBtn.className = 'shop-action primary';
+            equipBtn.textContent = equipped ? 'Equipped' : `Equip to Slot ${state.selectedSlot + 1}`;
+            equipBtn.disabled = equipped;
+            equipBtn.addEventListener('click', () => {
+              if (equipPower(id)) renderShop();
+            });
+            actions.appendChild(equipBtn);
+
+            const upgradeBtn = document.createElement('button');
+            upgradeBtn.className = 'shop-action';
+            upgradeBtn.textContent = upgradeCost ? `Upgrade ${formatInt(upgradeCost)} DP` : 'Max Level';
+            upgradeBtn.disabled = !upgradeCost || state.player.divinePoints < upgradeCost;
+            upgradeBtn.addEventListener('click', () => {
+              if (upgradePower(id)) renderShop();
+            });
+            actions.appendChild(upgradeBtn);
+          }
+          const note = document.createElement('div');
+          note.className = 'inline-note';
+          note.textContent = base.description;
+          card.appendChild(note);
+          shopGridEl.appendChild(card);
+        }
+
+        shopHintEl.textContent = `Divine Points: ${formatInt(state.player.divinePoints)} • Mission streak: ${state.player.missionStreak} • Highest combo: x${state.player.highestCombo.toFixed(1)}`;
+        state.shopNeedsRefresh = false;
+      }
+
+      function resize() {
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        state.halfW = state.width * 0.5;
+        state.halfH = state.height * 0.5;
+        canvas.width = Math.floor(state.width * state.dpr);
+        canvas.height = Math.floor(state.height * state.dpr);
+        canvas.style.width = `${state.width}px`;
+        canvas.style.height = `${state.height}px`;
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        state.renderCamera.focal = state.height * 0.86 / Math.tan(FOV * 0.5);
+      }
+
+      function projectPoint(x, y, z) {
+        const cam = state.renderCamera;
+        const rx = x - cam.pos.x;
+        const ry = y - cam.pos.y;
+        const rz = z - cam.pos.z;
+        const cx = rx * cam.right.x + ry * cam.right.y + rz * cam.right.z;
+        const cy = rx * cam.up.x + ry * cam.up.y + rz * cam.up.z;
+        const cz = rx * cam.forward.x + ry * cam.forward.y + rz * cam.forward.z;
+        if (cz <= NEAR) return null;
+        return {
+          x: state.halfW + (cx * cam.focal) / cz,
+          y: state.halfH - (cy * cam.focal) / cz,
+          z: cz
+        };
+      }
+
+      function rayToGround(screenX, screenY, planeY = 0) {
+        const cam = state.renderCamera;
+        const nx = (screenX - state.halfW) / cam.focal;
+        const ny = (state.halfH - screenY) / cam.focal;
+        const dir = vNorm({
+          x: cam.right.x * nx + cam.up.x * ny + cam.forward.x,
+          y: cam.right.y * nx + cam.up.y * ny + cam.forward.y,
+          z: cam.right.z * nx + cam.up.z * ny + cam.forward.z
+        });
+        if (Math.abs(dir.y) < 1e-5) return null;
+        const t = (planeY - cam.pos.y) / dir.y;
+        if (t <= 0) return null;
+        return {
+          x: cam.pos.x + dir.x * t,
+          y: planeY,
+          z: cam.pos.z + dir.z * t
+        };
+      }
+
+      function updateCamera(dt) {
+        const camera = state.camera;
+        const panSpeed = (state.keys.has('Shift') ? 78 : 45) * dt * (camera.radius / 220);
+        const groundForward = vNorm({ x: Math.sin(camera.yaw), y: 0, z: Math.cos(camera.yaw) });
+        const groundRight = vNorm({ x: Math.cos(camera.yaw), y: 0, z: -Math.sin(camera.yaw) });
+
+        if (state.keys.has('w') || state.keys.has('ArrowUp')) {
+          camera.target.x += groundForward.x * panSpeed;
+          camera.target.z += groundForward.z * panSpeed;
+        }
+        if (state.keys.has('s') || state.keys.has('ArrowDown')) {
+          camera.target.x -= groundForward.x * panSpeed;
+          camera.target.z -= groundForward.z * panSpeed;
+        }
+        if (state.keys.has('a') || state.keys.has('ArrowLeft')) {
+          camera.target.x -= groundRight.x * panSpeed;
+          camera.target.z -= groundRight.z * panSpeed;
+        }
+        if (state.keys.has('d') || state.keys.has('ArrowRight')) {
+          camera.target.x += groundRight.x * panSpeed;
+          camera.target.z += groundRight.z * panSpeed;
+        }
+
+        const limit = state.world.size * 0.52;
+        camera.target.x = clamp(camera.target.x, -limit, limit);
+        camera.target.z = clamp(camera.target.z, -limit, limit);
+        camera.pitch = clamp(camera.pitch, 0.24, 1.28);
+        camera.radius = clamp(camera.radius, 70, 340);
+
+        const cp = Math.cos(camera.pitch);
+        const sp = Math.sin(camera.pitch);
+        const cy = Math.cos(camera.yaw);
+        const sy = Math.sin(camera.yaw);
+
+        let pos = {
+          x: camera.target.x + camera.radius * cp * sy,
+          y: camera.target.y + camera.radius * sp,
+          z: camera.target.z + camera.radius * cp * cy
+        };
+
+        if (camera.shake > 0.001) {
+          const shakeMag = camera.shake * 0.28;
+          pos.x += (Math.random() - 0.5) * shakeMag;
+          pos.y += (Math.random() - 0.5) * shakeMag;
+          pos.z += (Math.random() - 0.5) * shakeMag;
+          camera.shake = Math.max(0, camera.shake - dt * 8);
+        } else {
+          camera.shake = 0;
+        }
+
+        const forward = vNorm(vSub(camera.target, pos));
+        let right = vCross(forward, WORLD_UP);
+        if (vLen(right) < 0.001) right = { x: 1, y: 0, z: 0 };
+        right = vNorm(right);
+        const up = vNorm(vCross(right, forward));
+
+        state.renderCamera.pos = pos;
+        state.renderCamera.forward = forward;
+        state.renderCamera.right = right;
+        state.renderCamera.up = up;
+        state.renderCamera.focal = state.height * 0.86 / Math.tan(FOV * 0.5);
+
+        if (state.mouse.inside) {
+          const point = rayToGround(state.mouse.x, state.mouse.y, 0);
+          if (point) {
+            const pad = state.world.size * 0.62;
+            state.targetPoint.x = clamp(point.x, -pad, pad);
+            state.targetPoint.z = clamp(point.z, -pad, pad);
+          }
+        }
+      }
+
+      function makePalette(rng) {
+        const base = [
+          [210, 24, 64],
+          [224, 20, 58],
+          [199, 28, 62],
+          [18, 22, 56],
+          [34, 26, 58],
+          [280, 16, 60],
+          [160, 20, 54],
+          [352, 22, 60],
+        ];
+        return base.map(([h, s, l]) => ({
+          top: hsl(h, s, l + 10),
+          north: hsl(h, s, l - 2),
+          south: hsl(h, s, l - 10),
+          east: hsl(h, s, l + 3),
+          west: hsl(h, s, l - 7),
+          glow: hsl(h, s + 8, l + 18, 0.18)
+        }));
+      }
+
+      function tileType(i, j, grid) {
+        if (i % 4 === 0 || j % 4 === 0) return 'road';
+        return 'lot';
+      }
+
+      function cityLabel(rng) {
+        return `${choice(rng, CITY_PREFIXES)} ${choice(rng, CITY_SUFFIXES)}`;
+      }
+
+      function createChunkRecord(building, level, x, z, sizeX, sizeY, sizeZ, colors, population) {
+        return {
+          building,
+          level,
+          x,
+          y: sizeY * 0.5 + level * sizeY,
+          z,
+          sx: sizeX,
+          sy: sizeY,
+          sz: sizeZ,
+          colors,
+          alive: true,
+          hp: 100,
+          maxHp: 100,
+          population,
+          growth: 1,
+          collapseScheduled: false,
+          destroyedAt: 0
+        };
+      }
+
+      function createWorld(seed) {
+        const rng = mulberry32(seed);
+        const palette = makePalette(rng);
+        const world = {
+          size: 0,
+          chunks: [],
+          buildings: [],
+          groundTiles: [],
+          roadTiles: [],
+          decor: [],
+          totalChunks: 0,
+          aliveChunks: 0,
+          totalPopulation: 0,
+          lostPopulation: 0,
+          destroyedCount: 0,
+          restoredCount: 0,
+          grid: 18,
+          cell: 12,
+        };
+
+        world.size = world.grid * world.cell;
+        const half = (world.grid - 1) * world.cell * 0.5;
+        const centerRadius = world.size * 0.22;
+
+        for (let i = 0; i < world.grid; i++) {
+          for (let j = 0; j < world.grid; j++) {
+            const x = i * world.cell - half;
+            const z = j * world.cell - half;
+
+            world.groundTiles.push({
+              x,
+              z,
+              sx: world.cell * 0.98,
+              sz: world.cell * 0.98,
+              color: ((i + j) & 1) ? '#111827' : '#121a2e'
+            });
+
+            if (tileType(i, j, world.grid) === 'road') {
+              const vertical = i % 4 === 0;
+              const horizontal = j % 4 === 0;
+              world.roadTiles.push({
+                x,
+                z,
+                sx: world.cell * 0.98,
+                sz: world.cell * 0.98,
+                color: '#252a35',
+                stripes: vertical || horizontal,
+                vertical,
+                horizontal
+              });
+              continue;
+            }
+
+            const parkChance = Math.hypot(x, z) > world.size * 0.36 ? 0.12 : 0.05;
+            if (rng() < parkChance) {
+              world.decor.push({ type: 'park', x, z, sx: world.cell * 0.86, sz: world.cell * 0.86 });
+              const treeCount = randInt(rng, 2, 5);
+              for (let t = 0; t < treeCount; t++) {
+                world.decor.push({
+                  type: 'tree',
+                  x: x + randRange(rng, -3.2, 3.2),
+                  z: z + randRange(rng, -3.2, 3.2),
+                  trunkH: randRange(rng, 1.8, 2.6),
+                  crown: randRange(rng, 2.4, 3.8)
+                });
+              }
+              continue;
+            }
+
+            const dist = Math.hypot(x, z);
+            const centerBoost = 1 - clamp(dist / centerRadius, 0, 1);
+            const towerBias = centerBoost * 2.8 + rng() * 1.2;
+            const levels = clamp(Math.floor(2 + towerBias + rng() * 5.5), 2, 10);
+            const sizeX = randRange(rng, 7.2, 9.6);
+            const sizeZ = randRange(rng, 7.2, 9.6);
+            const sizeY = randRange(rng, 3.4, 4.3);
+            const colors = choice(rng, palette);
+            const building = { x, z, chunks: [], colors };
+
+            for (let level = 0; level < levels; level++) {
+              const taper = 1 - Math.max(0, level - levels * 0.65) * 0.055;
+              const sx = sizeX * clamp(taper, 0.7, 1);
+              const sz = sizeZ * clamp(taper, 0.7, 1);
+              const population = Math.floor((sx * sz * 0.9) + randRange(rng, 18, 70));
+              const chunk = createChunkRecord(building, level, x, z, sx, sizeY, sz, colors, population);
+              building.chunks.push(chunk);
+              world.chunks.push(chunk);
+              world.totalChunks += 1;
+              world.aliveChunks += 1;
+              world.totalPopulation += population;
+            }
+
+            world.buildings.push(building);
+          }
+        }
+
+        state.cityName = cityLabel(rng);
+        spawnCitizens(world, rng);
+        return world;
+      }
+
+      function spawnCitizens(world, rng = Math.random) {
+        const roadTiles = world.roadTiles;
+        world.citizens = [];
+        world.streetPopulation = Math.min(MAX_CITIZENS, Math.max(90, Math.round(roadTiles.length * 0.58)));
+        const xRoads = [...new Set(roadTiles.filter((tile) => tile.vertical || tile.horizontal).map((tile) => tile.x))].sort((a, b) => a - b);
+        const zRoads = [...new Set(roadTiles.filter((tile) => tile.vertical || tile.horizontal).map((tile) => tile.z))].sort((a, b) => a - b);
+        const limit = world.size * 0.5 - world.cell * 0.35;
+
+        for (let i = 0; i < world.streetPopulation; i++) {
+          const tile = choice(rng, roadTiles);
+          const axis = tile.vertical && tile.horizontal ? (rng() < 0.5 ? 'x' : 'z') : tile.vertical ? 'z' : 'x';
+          const isCar = rng() < 0.32;
+          const laneOffset = isCar ? (rng() < 0.5 ? -1.05 : 1.05) : (rng() < 0.5 ? -2.1 : 2.1);
+          const entity = {
+            kind: isCar ? 'car' : 'ped',
+            axis,
+            dir: rng() < 0.5 ? -1 : 1,
+            speed: isCar ? randRange(rng, 5.8, 10.5) : randRange(rng, 1.3, 2.6),
+            panic: 0,
+            turnTimer: randRange(rng, 1.5, 6.5),
+            alive: true,
+            fade: 1,
+            size: isCar ? randRange(rng, 1.4, 1.9) : randRange(rng, 0.55, 0.85),
+            color: isCar ? choice(rng, ['#f6e7b0', '#b0d9ff', '#f7b1b1', '#d6c9ff', '#c6ffd2']) : choice(rng, ['#e7e7ff', '#ffd8ba', '#b8f5d2', '#ffbcd2']),
+            roadsX: xRoads,
+            roadsZ: zRoads,
+          };
+          if (axis === 'x') {
+            entity.x = tile.x + randRange(rng, -world.cell * 0.45, world.cell * 0.45);
+            entity.z = choice(rng, zRoads) + laneOffset;
+          } else {
+            entity.x = choice(rng, xRoads) + laneOffset;
+            entity.z = tile.z + randRange(rng, -world.cell * 0.45, world.cell * 0.45);
+          }
+          entity.limit = limit;
+          world.citizens.push(entity);
+        }
+      }
+
+      function resetWorld(newSeed = state.worldSeed + 1) {
+        state.worldSeed = newSeed;
+        state.world = createWorld(state.worldSeed);
+        state.projectiles.length = 0;
+        state.effects.length = 0;
+        state.debris.length = 0;
+        state.sparks.length = 0;
+        state.fallingMasses.length = 0;
+        state.pending.length = 0;
+        state.camera.target = { x: 0, y: 18, z: 0 };
+        state.camera.radius = 220;
+        state.camera.pitch = 0.72;
+        state.camera.yaw = 0.75;
+        state.combo.count = 0;
+        state.combo.timer = 0;
+        state.combo.multiplier = 1;
+        state.combo.lastReason = '';
+        state.mission.active = null;
+        state.mission.queueDelay = 1.6;
+        for (const key in state.cooldowns) state.cooldowns[key] = 0;
+        syncSelection();
+        state.uiNeedsRefresh = true;
+        state.shopNeedsRefresh = true;
+        showToast(`A new city rises: ${state.cityName}`);
+      }
+
+      function buildPowersUi() {
+        renderLoadoutUi();
+      }
+
+      function selectAbility(id) {
+        if (!abilities[id]) return;
+        const equippedSlot = findEquippedSlot(id);
+        if (equippedSlot >= 0) {
+          selectSlot(equippedSlot);
+          return;
+        }
+        if (isPowerOwned(id)) {
+          state.player.loadout[state.selectedSlot] = id;
+          state.shopNeedsRefresh = true;
+          syncSelection();
+          queueSave();
+        }
+      }
+
+      function getChaosScore() {
+        return Math.round(
+          state.world.destroyedCount * 18 +
+          state.world.collapsedBuildings * 65 +
+          state.world.chainEvents * 48 +
+          state.world.lostPopulation * 0.07 +
+          state.effects.length * 18
+        );
+      }
+
+      function refreshUi(force = false) {
+        if (!force && !state.uiNeedsRefresh && !state.shopNeedsRefresh) return;
+        syncSelection();
+        renderLoadoutUi();
+        const current = getAbility(state.selected);
+        selectedLabelEl.textContent = `Power: ${current.name} • Lv ${getPowerLevel(state.selected)}`;
+        selectedDescEl.textContent = current.description;
+        powerHintEl.textContent = current.hint;
+        cityNameEl.textContent = state.cityName;
+
+        document.querySelectorAll('.power').forEach((button) => {
+          const slotIndex = Number(button.dataset.slot || 0);
+          const id = state.player.loadout[slotIndex];
+          button.classList.toggle('active', slotIndex === state.selectedSlot);
+          const cd = id ? (state.cooldowns[id] || 0) : 0;
+          button.classList.toggle('on-cooldown', !!id && cd > 0.01);
+          const cdEl = button.querySelector('.cd');
+          if (cdEl) cdEl.textContent = !id ? '-' : (cd > 0.05 ? cd.toFixed(cd < 1 ? 1 : 0) : '0');
+        });
+
+        const integrity = Math.round((state.world.aliveChunks / Math.max(1, state.world.totalChunks)) * 100);
+        const populationRemaining = Math.max(0, state.world.totalPopulation - state.world.lostPopulation - state.world.streetCasualties);
+        integrityLabelEl.textContent = `Integrity: ${integrity}%`;
+        pointsLabelEl.textContent = `Divine Points: ${formatInt(state.player.divinePoints)} • Combo x${state.combo.multiplier.toFixed(1)}`;
+
+        if (state.mission.active) {
+          missionLabelEl.textContent = `Mission: ${state.mission.active.title}`;
+          missionDescEl.textContent = state.mission.active.description;
+          missionTimerEl.textContent = `${Math.ceil(state.mission.active.timeLeft)}s • Reward ${formatInt(state.mission.active.reward)} DP • ${formatMissionProgress(state.mission.active)}`;
+        } else {
+          missionLabelEl.textContent = 'Mission: Awaiting next trial';
+          missionDescEl.textContent = 'The city holds its breath while the next divine challenge forms.';
+          missionTimerEl.textContent = `${Math.max(0, Math.ceil(state.mission.queueDelay))}s • Streak ${state.player.missionStreak}`;
+        }
+
+        statsEl.innerHTML = `
+          <div class="stat"><div class="label">City Integrity</div><div class="value">${integrity}%</div></div>
+          <div class="stat"><div class="label">Divine Points</div><div class="value">${formatInt(state.player.divinePoints)}</div></div>
+          <div class="stat"><div class="label">Chaos Score</div><div class="value">${formatInt(getChaosScore())}</div></div>
+          <div class="stat"><div class="label">Mission Streak</div><div class="value">${formatInt(state.player.missionStreak)}</div></div>
+          <div class="stat"><div class="label">Population Remaining</div><div class="value">${formatInt(populationRemaining)}</div></div>
+          <div class="stat"><div class="label">Street Casualties</div><div class="value">${formatInt(state.world.streetCasualties)}</div></div>
+          <div class="stat"><div class="label">Chunks Destroyed</div><div class="value">${formatInt(state.world.destroyedCount)}</div></div>
+          <div class="stat"><div class="label">Chain Collapses</div><div class="value">${formatInt(state.world.collapsedBuildings)}</div></div>
+        `;
+
+        if (state.shopOpen) renderShop();
+        state.uiNeedsRefresh = false;
+        state.shopNeedsRefresh = false;
+      }
+
+      function showToast(message, duration = 1.8) {
+        toastEl.textContent = message;
+        toastEl.classList.add('show');
+        state.toastTimer = duration;
+      }
+
+      function triggerFlash(amount = 1) {
+        state.flash = Math.max(state.flash, amount);
+      }
+
+      function killCitizen(citizen, point, cause = 'impact') {
+        if (!citizen.alive) return false;
+        citizen.alive = false;
+        citizen.fade = 1;
+        citizen.panic = 0;
+        const casualtyValue = citizen.kind === 'car' ? 2 : 1;
+        state.world.streetCasualties += casualtyValue;
+        state.world.streetPopulation = Math.max(0, state.world.streetPopulation - casualtyValue);
+        state.uiNeedsRefresh = true;
+        noteMissionEvent('casualty', { cause, count: casualtyValue });
+        if (point) {
+          state.sparks.push({
+            x: citizen.x,
+            y: 0.35,
+            z: citizen.z,
+            vx: (Math.random() - 0.5) * 2.5,
+            vy: 2 + Math.random() * 2,
+            vz: (Math.random() - 0.5) * 2.5,
+            size: 1.4,
+            color: 'rgba(255, 180, 180, 0.9)',
+            life: 0.25
+          });
+        }
+        return true;
+      }
+
+      function panicCitizens(point, radius, lethality = 0.08, cause = 'impact') {
+        let losses = 0;
+        for (const citizen of state.world.citizens) {
+          if (!citizen.alive) continue;
+          const d = Math.hypot(citizen.x - point.x, citizen.z - point.z);
+          if (d > radius * 1.35) continue;
+          citizen.panic = Math.max(citizen.panic, 0.8 + (1 - d / Math.max(0.001, radius * 1.35)) * 1.4);
+          citizen.dir *= Math.random() < 0.08 ? -1 : 1;
+          const chance = lethality * (1 - d / Math.max(0.001, radius * 1.35));
+          if (Math.random() < chance) {
+            if (killCitizen(citizen, point, cause)) losses += 1;
+          }
+        }
+        state.world.panicLevel = clamp(state.world.panicLevel + lethality * 0.35, 0, 1.2);
+        return losses;
+      }
+
+      function sootheCitizens(point, radius) {
+        let calmed = 0;
+        for (const citizen of state.world.citizens) {
+          if (!citizen.alive) continue;
+          const d = Math.hypot(citizen.x - point.x, citizen.z - point.z);
+          if (d > radius * 1.2) continue;
+          if (citizen.panic > 0.1) calmed += 1;
+          citizen.panic = Math.max(0, citizen.panic - 1.1);
+        }
+        state.world.panicLevel = Math.max(0, state.world.panicLevel - 0.18);
+        return calmed;
+      }
+
+      function rebuildChunk(chunk) {
+        if (chunk.alive) return false;
+        chunk.alive = true;
+        chunk.hp = chunk.maxHp;
+        chunk.growth = 0;
+        chunk.collapseScheduled = false;
+        state.world.aliveChunks += 1;
+        state.world.restoredCount += 1;
+        state.world.destroyedCount = Math.max(0, state.world.destroyedCount - 1);
+        state.world.lostPopulation = Math.max(0, state.world.lostPopulation - chunk.population);
+        state.uiNeedsRefresh = true;
+        return true;
+      }
+
+      function restoreArea(point, radius, source = 'rebirth') {
+        let restored = 0;
+        for (const chunk of state.world.chunks) {
+          if (chunk.alive) continue;
+          const d = Math.hypot(chunk.x - point.x, chunk.z - point.z, (chunk.y - point.y) * 0.25);
+          if (d <= radius) {
+            if (rebuildChunk(chunk)) restored += 1;
+          }
+        }
+
+        for (let i = state.debris.length - 1; i >= 0; i--) {
+          const d = Math.hypot(state.debris[i].x - point.x, state.debris[i].z - point.z, state.debris[i].y - point.y);
+          if (d <= radius * 1.15) state.debris.splice(i, 1);
+        }
+        for (let i = state.fallingMasses.length - 1; i >= 0; i--) {
+          const d = Math.hypot(state.fallingMasses[i].x - point.x, state.fallingMasses[i].z - point.z, state.fallingMasses[i].y - point.y);
+          if (d <= radius * 1.1) state.fallingMasses.splice(i, 1);
+        }
+
+        const calmed = sootheCitizens(point, radius);
+        if (restored > 0) {
+          awardDivinePoints(Math.max(6, restored * 2.4), 'restoration');
+          noteMissionEvent('restore', { count: restored, source });
+        }
+        state.effects.push({
+          type: 'rebirthPulse',
+          x: point.x,
+          y: 0,
+          z: point.z,
+          radius: 3,
+          maxRadius: radius,
+          life: 0.8,
+          maxLife: 0.8,
+        });
+        triggerFlash(0.45);
+        state.camera.shake += 0.8;
+        showToast(restored > 0 ? `Rebirth restored ${restored} city blocks and calmed ${calmed} citizens.` : calmed > 0 ? `The district steadies. ${calmed} citizens are no longer panicking.` : 'Nothing there needed restoring.');
+      }
+
+      function spawnDebris(chunk, origin, force, upwardBias = 8) {
+        const pieces = clamp(Math.round((chunk.sx * chunk.sz) / 12), 4, 8);
+        for (let i = 0; i < pieces; i++) {
+          if (state.debris.length >= MAX_DEBRIS) state.debris.shift();
+          const ox = (Math.random() - 0.5) * chunk.sx * 0.55;
+          const oy = (Math.random() - 0.5) * chunk.sy * 0.45;
+          const oz = (Math.random() - 0.5) * chunk.sz * 0.55;
+          const px = chunk.x + ox;
+          const py = chunk.y + oy;
+          const pz = chunk.z + oz;
+          const away = vNorm({ x: px - origin.x, y: py - origin.y, z: pz - origin.z });
+          const speed = force * randRange(Math.random, 0.4, 1.1);
+          state.debris.push({
+            x: px,
+            y: py,
+            z: pz,
+            vx: away.x * speed + (Math.random() - 0.5) * 5,
+            vy: away.y * speed * 0.5 + randRange(Math.random, upwardBias * 0.5, upwardBias),
+            vz: away.z * speed + (Math.random() - 0.5) * 5,
+            size: randRange(Math.random, 0.7, 1.7),
+            color: chunk.colors.top,
+            life: randRange(Math.random, 2.4, 5.6),
+            rotation: Math.random() * TAU,
+            spin: randRange(Math.random, -5, 5)
+          });
+        }
+
+        const sparkCount = clamp(Math.floor(force * 2.5), 6, 30);
+        for (let i = 0; i < sparkCount; i++) {
+          if (state.sparks.length >= MAX_SPARKS) state.sparks.shift();
+          const angle = Math.random() * TAU;
+          const elev = Math.random() * Math.PI * 0.42;
+          const speed = randRange(Math.random, force * 0.35, force * 0.9);
+          state.sparks.push({
+            x: chunk.x,
+            y: chunk.y,
+            z: chunk.z,
+            vx: Math.cos(angle) * Math.cos(elev) * speed,
+            vy: Math.sin(elev) * speed + Math.random() * 3,
+            vz: Math.sin(angle) * Math.cos(elev) * speed,
+            size: randRange(Math.random, 1.6, 3.2),
+            color: i % 3 === 0 ? 'rgba(255, 210, 130, 0.95)' : 'rgba(255, 145, 90, 0.95)',
+            life: randRange(Math.random, 0.3, 0.9)
+          });
+        }
+      }
+
+      function spawnFallingMass(chunk, origin, severity = 1) {
+        if (state.fallingMasses.length >= MAX_FALLING_MASSES) state.fallingMasses.shift();
+        const away = vNorm({ x: chunk.x - origin.x + (Math.random() - 0.5) * 2, y: 0.2, z: chunk.z - origin.z + (Math.random() - 0.5) * 2 });
+        state.fallingMasses.push({
+          x: chunk.x,
+          y: chunk.y + chunk.sy * 0.2,
+          z: chunk.z,
+          vx: away.x * (4 + severity * 2.2) + (Math.random() - 0.5) * 3,
+          vy: 10 + severity * 2 + Math.random() * 2,
+          vz: away.z * (4 + severity * 2.2) + (Math.random() - 0.5) * 3,
+          size: Math.max(chunk.sx, chunk.sz) * 0.48,
+          height: chunk.sy * 0.8,
+          color: chunk.colors.top,
+          life: 4.8,
+          rotation: Math.random() * TAU,
+          spin: randRange(Math.random, -2.4, 2.4),
+          impactRadius: Math.max(chunk.sx, chunk.sz) * 1.1,
+          impactDamage: 90 + severity * 26,
+          impactForce: 9 + severity * 3.5,
+          impacted: false,
+        });
+      }
+
+      function scheduleBuildingFailure(building, origin, sourceAbility = state.selected, severity = 1) {
+        if (!building || building.failureScheduled || building.failureActive) return;
+        const liveChunks = building.chunks.filter((chunk) => chunk.alive);
+        if (liveChunks.length < 2) return;
+        building.failureScheduled = true;
+        building.failureSourceAbility = sourceAbility;
+        state.world.collapsedBuildings += 1;
+        state.world.chainEvents += 1;
+        noteMissionEvent('collapse', { count: 1, ability: sourceAbility });
+        awardDivinePoints(18 + severity * 6, 'collapse');
+        state.pending.push({
+          t: 0.08,
+          fn: () => {
+            building.failureScheduled = false;
+            building.failureActive = true;
+            const survivors = building.chunks.filter((chunk) => chunk.alive).sort((a, b) => b.level - a.level);
+            survivors.forEach((chunk, index) => {
+              state.pending.push({
+                t: index * 0.05,
+                fn: () => {
+                  if (!chunk.alive) return;
+                  spawnFallingMass(chunk, origin, severity + index * 0.12);
+                  destroyChunk(chunk, origin, 11 + severity * 2.5, {
+                    cascade: false,
+                    upwardBias: 6,
+                    fromCollapse: true,
+                    credit: false,
+                    ability: sourceAbility,
+                  });
+                  if (index === survivors.length - 1) {
+                    building.failureActive = false;
+                  }
+                }
+              });
+            });
+          }
+        });
+      }
+
+      function evaluateBuildingFailure(building, origin, sourceAbility = state.selected, severity = 1) {
+        if (!building || building.failureScheduled || building.failureActive) return;
+        const alive = building.chunks.filter((chunk) => chunk.alive);
+        if (alive.length < 2) return;
+        const lowerLevels = building.chunks.filter((chunk) => chunk.alive && chunk.level <= Math.min(1, building.chunks.length - 1)).length;
+        const aliveRatio = alive.length / building.chunks.length;
+        const supportRatio = lowerLevels / Math.min(2, building.chunks.length);
+        if (supportRatio <= 0.25 || (lowerLevels === 0 && aliveRatio < 0.7) || (aliveRatio < 0.4 && Math.random() < 0.35)) {
+          scheduleBuildingFailure(building, origin, sourceAbility, severity);
+        }
+      }
+
+      function destroyChunk(chunk, origin, force, options = {}) {
+        if (!chunk.alive) return false;
+        chunk.alive = false;
+        chunk.destroyedAt = state.time;
+        chunk.hp = 0;
+        state.world.aliveChunks -= 1;
+        state.world.destroyedCount += 1;
+        state.world.lostPopulation += chunk.population;
+        state.uiNeedsRefresh = true;
+        spawnDebris(chunk, origin, force, options.upwardBias ?? 8);
+        panicCitizens(origin, Math.max(chunk.sx, chunk.sz) * 2.1 + force * 0.8, clamp(0.02 + force * 0.0035, 0.02, 0.22), options.ability || state.selected);
+
+        const rewardBase = 3.8 + chunk.level * 0.9;
+        if (options.credit !== false) awardDivinePoints(rewardBase, options.ability || state.selected);
+        bumpCombo(1, options.ability || state.selected);
+        noteMissionEvent('destroy', { count: 1, ability: options.ability || state.selected });
+
+        if (options.cascade !== false) {
+          const building = chunk.building;
+          for (let i = chunk.level + 1; i < building.chunks.length; i++) {
+            const upper = building.chunks[i];
+            if (upper.alive && !upper.collapseScheduled) {
+              upper.collapseScheduled = true;
+              state.pending.push({
+                t: 0.06 * (i - chunk.level),
+                fn: () => {
+                  upper.collapseScheduled = false;
+                  if (upper.alive) destroyChunk(upper, origin, force * 0.75, { cascade: false, upwardBias: options.upwardBias ?? 9, ability: options.ability || state.selected });
+                }
+              });
+            }
+          }
+        }
+
+        evaluateBuildingFailure(chunk.building, origin, options.ability || state.selected, force * 0.08 + 1);
+        return true;
+      }
+
+      function damageAt(point, radius, damage, force, options = {}) {
+        let hit = 0;
+        panicCitizens(point, radius, clamp(damage / 1500, 0.04, 0.25), options.ability || state.selected);
+        for (const chunk of state.world.chunks) {
+          if (!chunk.alive) continue;
+          const horizontal = Math.hypot(chunk.x - point.x, chunk.z - point.z);
+          const verticalPenalty = Math.abs(chunk.y - point.y) * 0.18;
+          const d = horizontal + verticalPenalty;
+          if (d > radius) continue;
+          const t = 1 - d / radius;
+          chunk.hp -= damage * Math.pow(t, 0.85);
+          if (chunk.hp <= 0 || (options.forceDestroy && t > 0.72)) {
+            if (destroyChunk(chunk, point, force * (0.55 + t * 0.9), options)) hit += 1;
+          }
+        }
+        return hit;
+      }
+
+      function damageRing(point, innerRadius, outerRadius, damage, force, options = {}) {
+        panicCitizens(point, outerRadius, clamp(damage / 1800, 0.03, 0.18), options.ability || state.selected);
+        for (const chunk of state.world.chunks) {
+          if (!chunk.alive) continue;
+          const d = Math.hypot(chunk.x - point.x, chunk.z - point.z) + Math.abs(chunk.y - point.y) * 0.1;
+          if (d < innerRadius || d > outerRadius) continue;
+          const t = 1 - Math.abs(((innerRadius + outerRadius) * 0.5) - d) / Math.max(0.0001, (outerRadius - innerRadius) * 0.5);
+          chunk.hp -= damage * t;
+          if (chunk.hp <= 0) destroyChunk(chunk, point, force * (0.5 + t), { upwardBias: 10, ability: options.ability || state.selected });
+        }
+      }
+
+      function castPower(id, point) {
+        if (!abilities[id] || !isPowerOwned(id)) return;
+        const ability = getAbility(id);
+        if (state.cooldowns[id] > 0.01) {
+          showToast(`${abilities[id].name} is recharging.`);
+          return;
+        }
+        state.cooldowns[id] = ability.cooldown;
+        state.uiNeedsRefresh = true;
+        playPowerSound(id);
+
+        switch (id) {
+          case 'meteor': castMeteor(point, ability); break;
+          case 'lightning': castLightning(point, ability); break;
+          case 'shockwave': castShockwave(point, ability); break;
+          case 'tornado': castTornado(point, ability); break;
+          case 'singularity': castSingularity(point, ability); break;
+          case 'rebirth': restoreArea(point, ability.radius, id); break;
+          case 'solarbeam': castSolarbeam(point, ability); break;
+          case 'orbital': castOrbital(point, ability); break;
+          case 'cataclysm': castCataclysm(point, ability); break;
+        }
+      }
+
+      function castMeteor(point, ability = getAbility('meteor'), meteorOptions = {}) {
+        const start = { x: point.x + randRange(Math.random, -10, 10), y: 170 + Math.random() * 80, z: point.z + randRange(Math.random, -10, 10) };
+        state.projectiles.push({
+          type: 'meteor',
+          x: start.x,
+          y: start.y,
+          z: start.z,
+          tx: point.x,
+          ty: 0,
+          tz: point.z,
+          speed: meteorOptions.speed || 220,
+          radius: meteorOptions.spriteRadius || 3.4,
+          life: meteorOptions.life || 2.2,
+          blastRadius: meteorOptions.blastRadius || ability.radius,
+          blastDamage: meteorOptions.blastDamage || ability.damage,
+          blastForce: meteorOptions.blastForce || ability.force,
+          ability: meteorOptions.ability || 'meteor',
+          scorch: meteorOptions.scorch !== false,
+          burstColor: meteorOptions.burstColor || 'rgba(255, 180, 90, 0.95)',
+        });
+        if (!meteorOptions.silent) showToast(meteorOptions.label || 'Meteor called from the heavens.');
+      }
+
+      function impactMeteor(point, projectile) {
+        const hit = damageAt(point, projectile.blastRadius, projectile.blastDamage, projectile.blastForce, { upwardBias: 14, forceDestroy: true, ability: projectile.ability });
+        state.effects.push({
+          type: 'burst',
+          x: point.x, y: 0, z: point.z,
+          life: 0.75, maxLife: 0.75,
+          radius: 3, maxRadius: projectile.blastRadius + 3,
+          color: projectile.burstColor || 'rgba(255, 180, 90, 0.95)'
+        });
+        if (projectile.scorch) {
+          state.effects.push({
+            type: 'groundScorch',
+            x: point.x, y: 0.02, z: point.z,
+            life: 7.5, maxLife: 7.5,
+            radius: Math.max(8, projectile.blastRadius * 0.52),
+          });
+        }
+        state.camera.shake += 4.1 + projectile.blastRadius * 0.05;
+        triggerFlash(0.65);
+        if (hit > 0 && projectile.ability === 'meteor') showToast(`Meteor obliterated ${hit} city blocks.`);
+      }
+
+      function castLightning(point, ability = getAbility('lightning')) {
+        const strikes = Math.max(2, ability.strikes || 3);
+        for (let index = 0; index < strikes; index++) {
+          const main = index === 0;
+          const spread = main ? 0 : 6 + index * 2.5;
+          const offset = {
+            x: main ? 0 : randRange(Math.random, -spread, spread),
+            z: main ? 0 : randRange(Math.random, -spread, spread),
+            main,
+          };
+          state.pending.push({
+            t: index * 0.05,
+            fn: () => {
+              const p = { x: point.x + offset.x, y: 0, z: point.z + offset.z };
+              state.effects.push({
+                type: 'lightning',
+                points: makeLightningPath(p),
+                life: 0.16,
+                maxLife: 0.16,
+                main: !!offset.main
+              });
+              damageAt(p, main ? ability.radius : Math.max(8, ability.radius * 0.72), main ? ability.damage : ability.damage * 0.58, main ? ability.force : Math.max(4, ability.force * 0.6), { upwardBias: 7, forceDestroy: main, ability: 'lightning' });
+              triggerFlash(main ? 1 : 0.55);
+              state.camera.shake += main ? 1.8 : 0.8;
+            }
+          });
+        }
+      }
+
+      function makeLightningPath(point) {
+        const pts = [];
+        const start = { x: point.x + randRange(Math.random, -6, 6), y: 95 + Math.random() * 50, z: point.z + randRange(Math.random, -6, 6) };
+        const end = { x: point.x, y: 0, z: point.z };
+        const steps = 8;
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          pts.push({
+            x: lerp(start.x, end.x, t) + randRange(Math.random, -4, 4) * (1 - t),
+            y: lerp(start.y, end.y, t),
+            z: lerp(start.z, end.z, t) + randRange(Math.random, -4, 4) * (1 - t)
+          });
+        }
+        pts[0] = start;
+        pts[pts.length - 1] = end;
+        return pts;
+      }
+
+      function castShockwave(point, ability = getAbility('shockwave')) {
+        state.effects.push({
+          type: 'shockwave',
+          x: point.x, y: 0.1, z: point.z,
+          radius: 0,
+          lastRadius: 0,
+          maxRadius: ability.radius,
+          speed: ability.speed,
+          damage: ability.damage,
+          force: ability.force,
+          life: 0.55 + (ability.radius - 34) * 0.004,
+          maxLife: 0.55 + (ability.radius - 34) * 0.004,
+          ability: 'shockwave',
+        });
+        state.camera.shake += 2.1;
+        triggerFlash(0.35);
+      }
+
+      function castTornado(point, ability = getAbility('tornado')) {
+        state.effects.push({
+          type: 'tornado',
+          x: point.x,
+          y: 0,
+          z: point.z,
+          radius: ability.radius,
+          life: ability.duration,
+          maxLife: ability.duration,
+          tick: 0,
+          seed: Math.random() * 1000,
+          driftAngle: Math.random() * TAU,
+          driftSpeed: ability.driftSpeed,
+          damage: ability.damage,
+          ability: 'tornado',
+        });
+        state.camera.shake += 1.2;
+        showToast('A tornado touches down.');
+      }
+
+      function castSingularity(point, ability = getAbility('singularity')) {
+        state.effects.push({
+          type: 'singularity',
+          x: point.x,
+          y: 5,
+          z: point.z,
+          radius: ability.radius,
+          life: ability.duration,
+          maxLife: ability.duration,
+          pulse: 0,
+          damage: ability.damage,
+          ability: 'singularity',
+        });
+        state.camera.shake += 2.2;
+        triggerFlash(0.4);
+        showToast('Space bends to your will.');
+      }
+
+      function castSolarbeam(point, ability = getAbility('solarbeam')) {
+        state.effects.push({
+          type: 'solarbeam',
+          x: point.x,
+          y: 0,
+          z: point.z,
+          radius: ability.radius,
+          life: ability.duration,
+          maxLife: ability.duration,
+          damage: ability.damage,
+          force: ability.force,
+          tick: 0,
+          ability: 'solarbeam',
+        });
+        triggerFlash(0.55);
+        state.camera.shake += 1.8;
+        showToast('A lance of solar fire pierces the city.');
+      }
+
+      function castOrbital(point, ability = getAbility('orbital')) {
+        const blasts = Math.max(3, ability.blasts || 3);
+        showToast('Orbital lances are aligning.');
+        for (let i = 0; i < blasts; i++) {
+          state.pending.push({
+            t: 0.18 + i * 0.14,
+            fn: () => {
+              const angle = (i / blasts) * TAU + Math.random() * 0.5;
+              const dist = i === 0 ? 0 : 7 + i * 2.8;
+              const p = { x: point.x + Math.cos(angle) * dist, y: 0, z: point.z + Math.sin(angle) * dist };
+              state.effects.push({
+                type: 'solarbeam',
+                x: p.x,
+                y: 0,
+                z: p.z,
+                radius: ability.radius,
+                life: 0.7,
+                maxLife: 0.7,
+                damage: ability.damage,
+                force: ability.force,
+                tick: 0,
+                ability: 'orbital',
+                orbital: true,
+              });
+              damageAt(p, ability.radius, ability.damage * 0.72, ability.force, { forceDestroy: true, upwardBias: 10, ability: 'orbital' });
+              triggerFlash(0.5);
+              state.camera.shake += 1.4;
+            }
+          });
+        }
+      }
+
+      function castCataclysm(point, ability = getAbility('cataclysm')) {
+        const meteors = Math.max(5, ability.meteors || 5);
+        showToast('Worldbreaker descends.');
+        for (let i = 0; i < meteors; i++) {
+          state.pending.push({
+            t: i * 0.08,
+            fn: () => {
+              const offsetAngle = Math.random() * TAU;
+              const offsetDist = i === 0 ? 0 : randRange(Math.random, 4, ability.radius * 0.7);
+              castMeteor({
+                x: point.x + Math.cos(offsetAngle) * offsetDist,
+                y: 0,
+                z: point.z + Math.sin(offsetAngle) * offsetDist,
+              }, ability, {
+                ability: 'cataclysm',
+                blastRadius: ability.radius * 0.9,
+                blastDamage: ability.damage,
+                blastForce: ability.force,
+                spriteRadius: 4.2,
+                burstColor: 'rgba(255, 120, 92, 0.95)',
+                silent: i > 0,
+                label: 'Worldbreaker meteors rain from the void.',
+              });
+            }
+          });
+        }
+      }
+
+      function updateProjectiles(dt) {
+        for (let i = state.projectiles.length - 1; i >= 0; i--) {
+          const proj = state.projectiles[i];
+          proj.life -= dt;
+          if (proj.type === 'meteor') {
+            const toTarget = { x: proj.tx - proj.x, y: proj.ty - proj.y, z: proj.tz - proj.z };
+            const dist = Math.hypot(toTarget.x, toTarget.y, toTarget.z);
+            const dir = dist > 0.0001 ? { x: toTarget.x / dist, y: toTarget.y / dist, z: toTarget.z / dist } : { x: 0, y: -1, z: 0 };
+            const step = Math.min(dist, proj.speed * dt);
+            proj.x += dir.x * step;
+            proj.y += dir.y * step;
+            proj.z += dir.z * step;
+            if (dist < 2 || proj.life <= 0) {
+              impactMeteor({ x: proj.tx, y: 0, z: proj.tz }, proj);
+              state.projectiles.splice(i, 1);
+              continue;
+            }
+          }
+        }
+      }
+
+      function updatePending(dt) {
+        for (let i = state.pending.length - 1; i >= 0; i--) {
+          const p = state.pending[i];
+          p.t -= dt;
+          if (p.t <= 0) {
+            try { p.fn(); } catch (err) { console.error(err); }
+            state.pending.splice(i, 1);
+          }
+        }
+      }
+
+      function updateEffects(dt) {
+        for (let i = state.effects.length - 1; i >= 0; i--) {
+          const e = state.effects[i];
+          e.life -= dt;
+
+          if (e.type === 'shockwave') {
+            e.lastRadius = e.radius;
+            e.radius = Math.min(e.maxRadius, e.radius + e.speed * dt);
+            damageRing(e, e.lastRadius, e.radius, e.damage * dt * 7.2, e.force, { ability: e.ability || 'shockwave' });
+          }
+
+          if (e.type === 'tornado') {
+            e.tick += dt;
+            e.driftAngle += Math.sin(state.time * 0.6 + e.seed) * 0.15 * dt;
+            e.x += Math.cos(e.driftAngle) * e.driftSpeed * dt;
+            e.z += Math.sin(e.driftAngle) * e.driftSpeed * dt;
+            const limit = state.world.size * 0.48;
+            if (Math.abs(e.x) > limit || Math.abs(e.z) > limit) e.driftAngle += Math.PI * 0.7;
+            e.x = clamp(e.x, -limit, limit);
+            e.z = clamp(e.z, -limit, limit);
+
+            const damageRate = e.damage * dt;
+            panicCitizens({ x: e.x, y: 0, z: e.z }, e.radius * 1.1, clamp(0.006 + dt * 0.2, 0.006, 0.04), 'tornado');
+            for (const chunk of state.world.chunks) {
+              if (!chunk.alive) continue;
+              const d = Math.hypot(chunk.x - e.x, chunk.z - e.z) + Math.abs(chunk.y - 8) * 0.08;
+              if (d > e.radius) continue;
+              const t = 1 - d / e.radius;
+              chunk.hp -= damageRate * t;
+              if (chunk.hp <= 0 || (chunk.level === chunk.building.chunks.length - 1 && t > 0.88 && Math.random() < 0.2)) {
+                destroyChunk(chunk, { x: e.x, y: 8, z: e.z }, 12 + t * 10, { upwardBias: 16, cascade: chunk.level < chunk.building.chunks.length - 1, ability: 'tornado' });
+              }
+            }
+
+            for (const d of state.debris) {
+              const dx = d.x - e.x;
+              const dz = d.z - e.z;
+              const dist = Math.hypot(dx, dz);
+              if (dist > e.radius * 2.2 || dist < 0.2) continue;
+              const inward = -18 / dist;
+              const tangentialX = -dz / dist;
+              const tangentialZ = dx / dist;
+              d.vx += (dx / dist) * inward * dt + tangentialX * 34 * dt;
+              d.vz += (dz / dist) * inward * dt + tangentialZ * 34 * dt;
+              d.vy += 16 * dt;
+            }
+
+            for (const mass of state.fallingMasses) {
+              const dx = mass.x - e.x;
+              const dz = mass.z - e.z;
+              const dist = Math.hypot(dx, dz);
+              if (dist > e.radius * 2.3 || dist < 0.2) continue;
+              const tangentialX = -dz / dist;
+              const tangentialZ = dx / dist;
+              mass.vx += tangentialX * 24 * dt;
+              mass.vz += tangentialZ * 24 * dt;
+              mass.vy += 12 * dt;
+            }
+          }
+
+          if (e.type === 'singularity') {
+            e.pulse += dt * 6;
+            const field = e.radius * (0.85 + Math.sin(e.pulse) * 0.05);
+            panicCitizens({ x: e.x, y: 0, z: e.z }, field, clamp(0.01 + dt * 0.28, 0.01, 0.06), 'singularity');
+            for (const chunk of state.world.chunks) {
+              if (!chunk.alive) continue;
+              const dx = chunk.x - e.x;
+              const dy = chunk.y - e.y;
+              const dz = chunk.z - e.z;
+              const dist = Math.hypot(dx, dz, dy * 0.7);
+              if (dist > field) continue;
+              const t = 1 - dist / field;
+              chunk.hp -= e.damage * dt * (0.25 + t * 1.2);
+              if (chunk.hp <= 0 || (dist < field * 0.25 && Math.random() < 0.08)) {
+                destroyChunk(chunk, { x: e.x, y: e.y, z: e.z }, 4 + t * 6, { upwardBias: -2, cascade: false, ability: 'singularity' });
+              }
+            }
+
+            for (const d of state.debris) {
+              const dx = e.x - d.x;
+              const dy = e.y - d.y;
+              const dz = e.z - d.z;
+              const dist = Math.hypot(dx, dy, dz) + 0.001;
+              if (dist > field * 2.8) continue;
+              const pull = 160 / (dist * dist + 20);
+              d.vx += (dx / dist) * pull * dt * 55;
+              d.vy += (dy / dist) * pull * dt * 55;
+              d.vz += (dz / dist) * pull * dt * 55;
+              d.life = Math.max(d.life, 0.4);
+              if (dist < 3.5) d.life = 0;
+            }
+
+            for (const mass of state.fallingMasses) {
+              const dx = e.x - mass.x;
+              const dy = e.y - mass.y;
+              const dz = e.z - mass.z;
+              const dist = Math.hypot(dx, dy, dz) + 0.001;
+              if (dist > field * 2.6) continue;
+              const pull = 120 / (dist * dist + 18);
+              mass.vx += (dx / dist) * pull * dt * 42;
+              mass.vy += (dy / dist) * pull * dt * 42;
+              mass.vz += (dz / dist) * pull * dt * 42;
+              if (dist < 4.2) mass.life = 0;
+            }
+
+            if (e.life <= 0) {
+              damageAt({ x: e.x, y: 0, z: e.z }, Math.max(18, e.radius), 90 + e.damage * 0.24, 24, { upwardBias: 10, forceDestroy: true, ability: 'singularity' });
+              state.effects.push({
+                type: 'burst',
+                x: e.x, y: 0, z: e.z,
+                life: 0.55, maxLife: 0.55,
+                radius: 4, maxRadius: Math.max(24, e.radius * 1.1),
+                color: 'rgba(180, 130, 255, 0.9)'
+              });
+              state.camera.shake += 3.4;
+              triggerFlash(0.65);
+            }
+          }
+
+          if (e.type === 'solarbeam') {
+            e.tick += dt;
+            if (e.tick >= 0.06) {
+              e.tick = 0;
+              damageAt({ x: e.x, y: 0, z: e.z }, e.radius, e.damage * 0.26, e.force, { forceDestroy: true, upwardBias: 10, ability: e.ability || 'solarbeam' });
+            }
+            panicCitizens({ x: e.x, y: 0, z: e.z }, e.radius * 1.2, clamp(0.012 + dt * 0.35, 0.012, 0.08), e.ability || 'solarbeam');
+          }
+
+          if (e.type === 'rebirthPulse') {
+            e.radius = lerp(0, e.maxRadius, 1 - e.life / e.maxLife);
+          }
+
+          if (e.type === 'burst') {
+            e.radius = lerp(e.radius, e.maxRadius, easeOutQuad(dt * 6));
+          }
+
+          if (e.life <= 0) {
+            state.effects.splice(i, 1);
+          }
+        }
+      }
+
+      function turnCitizen(citizen) {
+        const laneOffset = citizen.kind === 'car' ? (Math.random() < 0.5 ? -1.05 : 1.05) : (Math.random() < 0.5 ? -2.1 : 2.1);
+        if (Math.random() < 0.46) {
+          citizen.axis = citizen.axis === 'x' ? 'z' : 'x';
+          if (citizen.axis === 'x') citizen.z = choice(Math.random, citizen.roadsZ) + laneOffset;
+          else citizen.x = choice(Math.random, citizen.roadsX) + laneOffset;
+        } else {
+          citizen.dir *= -1;
+        }
+        citizen.turnTimer = randRange(Math.random, 1.8, 6.4);
+      }
+
+      function updateDebris(dt) {
+        for (let i = state.debris.length - 1; i >= 0; i--) {
+          const d = state.debris[i];
+          d.life -= dt;
+          d.rotation += d.spin * dt;
+          d.vy -= 24 * dt;
+          d.x += d.vx * dt;
+          d.y += d.vy * dt;
+          d.z += d.vz * dt;
+          d.vx *= Math.pow(0.995, dt * 60);
+          d.vz *= Math.pow(0.995, dt * 60);
+
+          if (d.y < d.size * 0.25) {
+            d.y = d.size * 0.25;
+            d.vy *= -0.34;
+            d.vx *= 0.92;
+            d.vz *= 0.92;
+            if (Math.abs(d.vy) < 1.1) d.vy = 0;
+          }
+
+          if (d.life <= 0) state.debris.splice(i, 1);
+        }
+
+        for (let i = state.sparks.length - 1; i >= 0; i--) {
+          const s = state.sparks[i];
+          s.life -= dt;
+          s.vy -= 30 * dt;
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+          s.z += s.vz * dt;
+          if (s.life <= 0 || s.y < 0) state.sparks.splice(i, 1);
+        }
+
+        for (let i = state.fallingMasses.length - 1; i >= 0; i--) {
+          const mass = state.fallingMasses[i];
+          mass.life -= dt;
+          mass.rotation += mass.spin * dt;
+          mass.vy -= 26 * dt;
+          mass.x += mass.vx * dt;
+          mass.y += mass.vy * dt;
+          mass.z += mass.vz * dt;
+          mass.vx *= Math.pow(0.994, dt * 60);
+          mass.vz *= Math.pow(0.994, dt * 60);
+          if (!mass.impacted && mass.y <= mass.size * 0.2) {
+            mass.impacted = true;
+            mass.y = mass.size * 0.2;
+            damageAt({ x: mass.x, y: 0, z: mass.z }, mass.impactRadius, mass.impactDamage, mass.impactForce, { forceDestroy: true, upwardBias: 14, ability: 'collapse' });
+            state.effects.push({
+              type: 'burst',
+              x: mass.x,
+              y: 0,
+              z: mass.z,
+              life: 0.42,
+              maxLife: 0.42,
+              radius: 2,
+              maxRadius: mass.impactRadius * 0.9,
+              color: 'rgba(255, 165, 110, 0.75)'
+            });
+            state.camera.shake += 1.2;
+            mass.life = 0;
+          }
+          if (mass.life <= 0) state.fallingMasses.splice(i, 1);
+        }
+
+        state.world.panicLevel = Math.max(0, state.world.panicLevel - dt * 0.08);
+        for (let i = state.world.citizens.length - 1; i >= 0; i--) {
+          const citizen = state.world.citizens[i];
+          if (!citizen.alive) {
+            citizen.fade -= dt * 1.8;
+            if (citizen.fade <= 0) state.world.citizens.splice(i, 1);
+            continue;
+          }
+          citizen.turnTimer -= dt * (1 + citizen.panic * 0.35);
+          if (citizen.turnTimer <= 0) turnCitizen(citizen);
+          const speed = citizen.speed * (1 + citizen.panic * 1.8);
+          if (citizen.axis === 'x') citizen.x += citizen.dir * speed * dt;
+          else citizen.z += citizen.dir * speed * dt;
+          citizen.panic = Math.max(0, citizen.panic - dt * 0.38);
+
+          if (Math.abs(citizen.x) > citizen.limit || Math.abs(citizen.z) > citizen.limit) {
+            citizen.x = clamp(citizen.x, -citizen.limit, citizen.limit);
+            citizen.z = clamp(citizen.z, -citizen.limit, citizen.limit);
+            turnCitizen(citizen);
+          }
+        }
+      }
+
+      function updateCooldowns(dt) {
+        let changed = false;
+        for (const key in state.cooldowns) {
+          const next = Math.max(0, state.cooldowns[key] - dt);
+          if (next !== state.cooldowns[key]) changed = true;
+          state.cooldowns[key] = next;
+        }
+        if (changed) state.uiNeedsRefresh = true;
+      }
+
+      function updateGrowth(dt) {
+        for (const chunk of state.world.chunks) {
+          if (chunk.alive && chunk.growth < 1) {
+            chunk.growth = Math.min(1, chunk.growth + dt * 2.3);
+          }
+        }
+      }
+
+      function renderBackground() {
+        const g = ctx.createLinearGradient(0, 0, 0, state.height);
+        g.addColorStop(0, '#111831');
+        g.addColorStop(0.42, '#18213f');
+        g.addColorStop(0.7, '#0f1528');
+        g.addColorStop(1, '#080c16');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, state.width, state.height);
+
+        const horizonGlow = ctx.createRadialGradient(state.width * 0.52, state.height * 0.38, 40, state.width * 0.52, state.height * 0.38, state.width * 0.46);
+        horizonGlow.addColorStop(0, 'rgba(137, 170, 255, 0.16)');
+        horizonGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = horizonGlow;
+        ctx.fillRect(0, 0, state.width, state.height);
+      }
+
+      function pushQuad(polyList, p1, p2, p3, p4, depth, color, alpha = 1, stroke = null) {
+        if (!p1 || !p2 || !p3 || !p4) return;
+        polyList.push({ points: [p1, p2, p3, p4], depth, color, alpha, stroke });
+      }
+
+      function pushTri(polyList, p1, p2, p3, depth, color, alpha = 1, stroke = null) {
+        if (!p1 || !p2 || !p3) return;
+        polyList.push({ points: [p1, p2, p3], depth, color, alpha, stroke });
+      }
+
+      function renderWorld() {
+        renderBackground();
+
+        const polys = [];
+        const sprites = [];
+
+        const half = state.world.size * 0.52;
+        const groundY = -0.01;
+        const groundCorners = [
+          projectPoint(-half, groundY, -half),
+          projectPoint(half, groundY, -half),
+          projectPoint(half, groundY, half),
+          projectPoint(-half, groundY, half)
+        ];
+        if (groundCorners.every(Boolean)) {
+          pushQuad(polys, groundCorners[0], groundCorners[1], groundCorners[2], groundCorners[3], 10000, '#0c101d', 1);
+        }
+
+        for (const tile of state.world.groundTiles) {
+          const sx = tile.sx * 0.5;
+          const sz = tile.sz * 0.5;
+          const p1 = projectPoint(tile.x - sx, 0, tile.z - sz);
+          const p2 = projectPoint(tile.x + sx, 0, tile.z - sz);
+          const p3 = projectPoint(tile.x + sx, 0, tile.z + sz);
+          const p4 = projectPoint(tile.x - sx, 0, tile.z + sz);
+          if (p1 && p2 && p3 && p4) {
+            const depth = (p1.z + p2.z + p3.z + p4.z) * 0.25 + 4000;
+            pushQuad(polys, p1, p2, p3, p4, depth, tile.color);
+          }
+        }
+
+        for (const road of state.world.roadTiles) {
+          const sx = road.sx * 0.5;
+          const sz = road.sz * 0.5;
+          const p1 = projectPoint(road.x - sx, 0.03, road.z - sz);
+          const p2 = projectPoint(road.x + sx, 0.03, road.z - sz);
+          const p3 = projectPoint(road.x + sx, 0.03, road.z + sz);
+          const p4 = projectPoint(road.x - sx, 0.03, road.z + sz);
+          if (p1 && p2 && p3 && p4) {
+            const depth = (p1.z + p2.z + p3.z + p4.z) * 0.25 + 3800;
+            pushQuad(polys, p1, p2, p3, p4, depth, road.color);
+          }
+
+          if (road.stripes) {
+            const stripeCount = road.vertical && road.horizontal ? 0 : 3;
+            for (let s = 0; s < stripeCount; s++) {
+              const offset = (-0.28 + s * 0.28) * state.world.cell;
+              if (road.vertical) {
+                const q1 = projectPoint(road.x - 0.18, 0.05, road.z + offset - 1.4);
+                const q2 = projectPoint(road.x + 0.18, 0.05, road.z + offset - 1.4);
+                const q3 = projectPoint(road.x + 0.18, 0.05, road.z + offset + 1.4);
+                const q4 = projectPoint(road.x - 0.18, 0.05, road.z + offset + 1.4);
+                if (q1 && q2 && q3 && q4) pushQuad(polys, q1, q2, q3, q4, (q1.z + q2.z + q3.z + q4.z) * 0.25 + 3790, 'rgba(237, 214, 155, 0.85)');
+              } else if (road.horizontal) {
+                const q1 = projectPoint(road.x + offset - 1.4, 0.05, road.z - 0.18);
+                const q2 = projectPoint(road.x + offset + 1.4, 0.05, road.z - 0.18);
+                const q3 = projectPoint(road.x + offset + 1.4, 0.05, road.z + 0.18);
+                const q4 = projectPoint(road.x + offset - 1.4, 0.05, road.z + 0.18);
+                if (q1 && q2 && q3 && q4) pushQuad(polys, q1, q2, q3, q4, (q1.z + q2.z + q3.z + q4.z) * 0.25 + 3790, 'rgba(237, 214, 155, 0.85)');
+              }
+            }
+          }
+        }
+
+        for (const deco of state.world.decor) {
+          if (deco.type === 'park') {
+            const sx = deco.sx * 0.5;
+            const sz = deco.sz * 0.5;
+            const p1 = projectPoint(deco.x - sx, 0.05, deco.z - sz);
+            const p2 = projectPoint(deco.x + sx, 0.05, deco.z - sz);
+            const p3 = projectPoint(deco.x + sx, 0.05, deco.z + sz);
+            const p4 = projectPoint(deco.x - sx, 0.05, deco.z + sz);
+            if (p1 && p2 && p3 && p4) {
+              pushQuad(polys, p1, p2, p3, p4, (p1.z + p2.z + p3.z + p4.z) * 0.25 + 3770, '#143021');
+            }
+          }
+
+          if (deco.type === 'tree') {
+            const trunkTop = projectPoint(deco.x, deco.trunkH, deco.z);
+            const trunkBase = projectPoint(deco.x, 0, deco.z);
+            const crownLeft = projectPoint(deco.x - deco.crown * 0.5, deco.trunkH + deco.crown * 0.1, deco.z);
+            const crownRight = projectPoint(deco.x + deco.crown * 0.5, deco.trunkH + deco.crown * 0.1, deco.z);
+            const crownTop = projectPoint(deco.x, deco.trunkH + deco.crown, deco.z);
+            if (trunkTop && trunkBase) {
+              pushQuad(polys,
+                projectPoint(deco.x - 0.18, 0, deco.z),
+                projectPoint(deco.x + 0.18, 0, deco.z),
+                projectPoint(deco.x + 0.18, deco.trunkH, deco.z),
+                projectPoint(deco.x - 0.18, deco.trunkH, deco.z),
+                (trunkTop.z + trunkBase.z) * 0.5 + 3700,
+                '#5e3d26'
+              );
+            }
+            if (crownLeft && crownRight && crownTop) {
+              pushTri(polys, crownLeft, crownRight, crownTop, (crownLeft.z + crownRight.z + crownTop.z) / 3 + 3690, '#2b7042');
+            }
+          }
+        }
+
+        for (const chunk of state.world.chunks) {
+          if (!chunk.alive) continue;
+          const grow = easeOutCubic(chunk.growth);
+          const sy = chunk.sy * Math.max(0.02, grow);
+          const yBase = chunk.y - chunk.sy * 0.5;
+          const yBottom = yBase;
+          const yTop = yBase + sy;
+          const x1 = chunk.x - chunk.sx * 0.5;
+          const x2 = chunk.x + chunk.sx * 0.5;
+          const z1 = chunk.z - chunk.sz * 0.5;
+          const z2 = chunk.z + chunk.sz * 0.5;
+
+          const top = [
+            projectPoint(x1, yTop, z1),
+            projectPoint(x2, yTop, z1),
+            projectPoint(x2, yTop, z2),
+            projectPoint(x1, yTop, z2)
+          ];
+
+          const north = [
+            projectPoint(x1, yBottom, z1),
+            projectPoint(x2, yBottom, z1),
+            projectPoint(x2, yTop, z1),
+            projectPoint(x1, yTop, z1)
+          ];
+
+          const south = [
+            projectPoint(x1, yBottom, z2),
+            projectPoint(x2, yBottom, z2),
+            projectPoint(x2, yTop, z2),
+            projectPoint(x1, yTop, z2)
+          ];
+
+          const west = [
+            projectPoint(x1, yBottom, z1),
+            projectPoint(x1, yBottom, z2),
+            projectPoint(x1, yTop, z2),
+            projectPoint(x1, yTop, z1)
+          ];
+
+          const east = [
+            projectPoint(x2, yBottom, z1),
+            projectPoint(x2, yBottom, z2),
+            projectPoint(x2, yTop, z2),
+            projectPoint(x2, yTop, z1)
+          ];
+
+          const cam = state.renderCamera.pos;
+          const northFacing = cam.z < z1;
+          const southFacing = cam.z > z2;
+          const westFacing = cam.x < x1;
+          const eastFacing = cam.x > x2;
+
+          const depthTop = top.every(Boolean) ? (top[0].z + top[1].z + top[2].z + top[3].z) * 0.25 : 0;
+          if (top.every(Boolean)) pushQuad(polys, top[0], top[1], top[2], top[3], depthTop, chunk.colors.top, 1, 'rgba(255,255,255,0.04)');
+          if (northFacing && north.every(Boolean)) pushQuad(polys, north[0], north[1], north[2], north[3], (north[0].z + north[1].z + north[2].z + north[3].z) * 0.25, chunk.colors.north, 1, 'rgba(0,0,0,0.08)');
+          if (southFacing && south.every(Boolean)) pushQuad(polys, south[0], south[1], south[2], south[3], (south[0].z + south[1].z + south[2].z + south[3].z) * 0.25, chunk.colors.south, 1, 'rgba(0,0,0,0.12)');
+          if (westFacing && west.every(Boolean)) pushQuad(polys, west[0], west[1], west[2], west[3], (west[0].z + west[1].z + west[2].z + west[3].z) * 0.25, chunk.colors.west, 1, 'rgba(0,0,0,0.1)');
+          if (eastFacing && east.every(Boolean)) pushQuad(polys, east[0], east[1], east[2], east[3], (east[0].z + east[1].z + east[2].z + east[3].z) * 0.25, chunk.colors.east, 1, 'rgba(255,255,255,0.03)');
+
+          if (chunk.level > 0 && chunk.growth === 1 && chunk.alive && Math.floor(state.time * 2 + chunk.x + chunk.z) % 9 === 0) {
+            const glowY = yTop - 0.6;
+            const p = projectPoint(chunk.x, glowY, chunk.z);
+            if (p) {
+              sprites.push({ x: p.x, y: p.y, depth: p.z - 0.1, r: Math.max(1.5, 55 / p.z), color: chunk.colors.glow });
+            }
+          }
+        }
+
+        for (const d of state.debris) {
+          const p = projectPoint(d.x, d.y, d.z);
+          if (!p) continue;
+          const size = Math.max(1.2, (d.size * state.renderCamera.focal) / (p.z * 4));
+          sprites.push({ x: p.x, y: p.y, depth: p.z, r: size, color: d.color, rotation: d.rotation, square: true, alpha: clamp(d.life / 2.4, 0, 1) });
+        }
+
+        for (const s of state.sparks) {
+          const p = projectPoint(s.x, s.y, s.z);
+          if (!p) continue;
+          const size = Math.max(1, (s.size * state.renderCamera.focal) / (p.z * 8));
+          sprites.push({ x: p.x, y: p.y, depth: p.z - 0.5, r: size, color: s.color, alpha: clamp(s.life * 1.7, 0, 1) });
+        }
+
+        for (const citizen of state.world.citizens) {
+          const p = projectPoint(citizen.x, citizen.kind === 'car' ? 0.4 : 0.18, citizen.z);
+          if (!p) continue;
+          const alpha = citizen.alive ? 1 : clamp(citizen.fade, 0, 1);
+          const size = Math.max(citizen.kind === 'car' ? 1.3 : 1.1, (citizen.size * state.renderCamera.focal) / (p.z * (citizen.kind === 'car' ? 5.8 : 8.2)));
+          const color = citizen.alive ? (citizen.panic > 0.9 ? 'rgba(255, 160, 160, 0.95)' : citizen.color) : 'rgba(255, 120, 120, 0.55)';
+          sprites.push({ x: p.x, y: p.y, depth: p.z - 0.2, r: size, color, alpha, square: citizen.kind === 'car', rotation: citizen.axis === 'x' ? 0 : Math.PI * 0.5 });
+          if (citizen.alive && citizen.panic > 1.1) {
+            sprites.push({ x: p.x, y: p.y, depth: p.z - 0.25, r: size * 1.8, color: 'rgba(255, 120, 120, 0.16)', alpha: 0.9, glow: true });
+          }
+        }
+
+        for (const mass of state.fallingMasses) {
+          const p = projectPoint(mass.x, mass.y, mass.z);
+          if (!p) continue;
+          const size = Math.max(4, (mass.size * state.renderCamera.focal) / (p.z * 2.7));
+          sprites.push({ x: p.x, y: p.y, depth: p.z - 0.4, r: size, color: mass.color, alpha: clamp(mass.life / 2.6, 0, 1), square: true, rotation: mass.rotation });
+          sprites.push({ x: p.x, y: p.y, depth: p.z - 0.5, r: size * 1.3, color: 'rgba(255, 170, 120, 0.12)', alpha: clamp(mass.life / 3.2, 0, 1), glow: true });
+        }
+
+        for (const proj of state.projectiles) {
+          if (proj.type === 'meteor') {
+            const p = projectPoint(proj.x, proj.y, proj.z);
+            if (p) {
+              const size = Math.max(5, (proj.radius * state.renderCamera.focal) / (p.z * 1.35));
+              sprites.push({ x: p.x, y: p.y, depth: p.z - 2, r: size, color: 'rgba(255, 168, 82, 0.95)', alpha: 1, glow: true });
+              const tail = projectPoint(proj.x - (proj.tx - proj.x) * 0.12, proj.y + 10, proj.z - (proj.tz - proj.z) * 0.12);
+              if (tail) {
+                polys.push({
+                  type: 'line',
+                  depth: (p.z + tail.z) * 0.5 - 1,
+                  line: [tail, p],
+                  width: Math.max(2, size * 0.5),
+                  color: 'rgba(255, 210, 120, 0.5)'
+                });
+              }
+            }
+          }
+        }
+
+        for (const effect of state.effects) {
+          if (effect.type === 'lightning') {
+            const pts = effect.points.map((pt) => projectPoint(pt.x, pt.y, pt.z)).filter(Boolean);
+            if (pts.length > 1) {
+              polys.push({
+                type: 'polyline',
+                depth: pts.reduce((a, p) => a + p.z, 0) / pts.length - 4,
+                points: pts,
+                width: effect.main ? 3.4 : 2,
+                color: effect.main ? 'rgba(210, 235, 255, 0.98)' : 'rgba(180, 220, 255, 0.85)'
+              });
+              polys.push({
+                type: 'polyline',
+                depth: pts.reduce((a, p) => a + p.z, 0) / pts.length - 4.1,
+                points: pts,
+                width: effect.main ? 8 : 5,
+                color: effect.main ? 'rgba(145, 185, 255, 0.2)' : 'rgba(145, 185, 255, 0.16)'
+              });
+            }
+          }
+
+          if (effect.type === 'shockwave') {
+            polys.push({ type: 'groundRing', depth: 2000 - effect.radius, x: effect.x, z: effect.z, y: 0.12, radius: effect.radius, color: 'rgba(255, 220, 160, 0.8)', width: 3 });
+          }
+
+          if (effect.type === 'rebirthPulse') {
+            polys.push({ type: 'groundRing', depth: 1990 - effect.radius, x: effect.x, z: effect.z, y: 0.15, radius: effect.radius, color: 'rgba(110, 245, 170, 0.85)', width: 3 });
+          }
+
+          if (effect.type === 'groundScorch') {
+            polys.push({ type: 'groundDisk', depth: 1980, x: effect.x, z: effect.z, y: 0.04, radius: effect.radius, color: `rgba(38, 13, 10, ${0.42 * (effect.life / effect.maxLife)})` });
+          }
+
+          if (effect.type === 'burst') {
+            const p = projectPoint(effect.x, effect.y + 2, effect.z);
+            if (p) {
+              const size = Math.max(10, (effect.radius * state.renderCamera.focal) / (p.z * 1.2));
+              sprites.push({ x: p.x, y: p.y, depth: p.z - 2, r: size, color: effect.color, alpha: clamp(effect.life / effect.maxLife, 0, 1), glow: true });
+            }
+          }
+
+          if (effect.type === 'tornado') {
+            const loops = 6;
+            for (let n = 0; n < loops; n++) {
+              const t = n / (loops - 1);
+              const ringY = 2 + t * 28;
+              const radius = lerp(effect.radius * 0.85, effect.radius * 0.22, t);
+              polys.push({
+                type: 'groundRing3D',
+                depth: 1800 - ringY,
+                x: effect.x,
+                y: ringY,
+                z: effect.z,
+                radius,
+                rotation: state.time * 2.5 + t * 1.4,
+                color: `rgba(190, 220, 240, ${0.18 + t * 0.14})`,
+                width: 2 + t * 2
+              });
+            }
+          }
+
+          if (effect.type === 'solarbeam') {
+            const top = projectPoint(effect.x, 120, effect.z);
+            const bottom = projectPoint(effect.x, 0.1, effect.z);
+            if (top && bottom) {
+              const alpha = clamp(effect.life / effect.maxLife, 0, 1);
+              const width = Math.max(6, (effect.radius * state.renderCamera.focal) / Math.max(bottom.z, 1) * 0.16);
+              polys.push({
+                type: 'line',
+                depth: (top.z + bottom.z) * 0.5 - 5,
+                line: [top, bottom],
+                width,
+                color: effect.orbital ? `rgba(175, 225, 255, ${0.86 * alpha})` : `rgba(255, 236, 170, ${0.88 * alpha})`
+              });
+              polys.push({
+                type: 'line',
+                depth: (top.z + bottom.z) * 0.5 - 5.1,
+                line: [top, bottom],
+                width: width * 1.9,
+                color: effect.orbital ? `rgba(110, 185, 255, ${0.18 * alpha})` : `rgba(255, 180, 90, ${0.18 * alpha})`
+              });
+              sprites.push({ x: bottom.x, y: bottom.y, depth: bottom.z - 2, r: width * 0.9, color: effect.orbital ? 'rgba(145, 215, 255, 0.25)' : 'rgba(255, 215, 130, 0.28)', alpha: alpha, glow: true });
+            }
+            polys.push({ type: 'groundRing', depth: 1940 - effect.radius, x: effect.x, z: effect.z, y: 0.14, radius: effect.radius * 0.92, color: effect.orbital ? 'rgba(175, 225, 255, 0.7)' : 'rgba(255, 220, 145, 0.74)', width: 2.6 });
+          }
+
+          if (effect.type === 'singularity') {
+            const p = projectPoint(effect.x, effect.y, effect.z);
+            if (p) {
+              const size = Math.max(6, (8 * state.renderCamera.focal) / p.z);
+              sprites.push({ x: p.x, y: p.y, depth: p.z - 3, r: size * 0.9, color: 'rgba(10, 6, 24, 0.95)', alpha: 1 });
+              sprites.push({ x: p.x, y: p.y, depth: p.z - 3.1, r: size * 1.7, color: 'rgba(145, 95, 255, 0.18)', alpha: 0.9, glow: true });
+            }
+            polys.push({ type: 'orbitalRing', depth: 1750, x: effect.x, y: effect.y, z: effect.z, radius: 11, tilt: 0.5, rotation: state.time * 2.4, width: 2.5, color: 'rgba(195, 150, 255, 0.7)' });
+            polys.push({ type: 'orbitalRing', depth: 1749, x: effect.x, y: effect.y, z: effect.z, radius: 15, tilt: -0.2, rotation: -state.time * 1.8, width: 1.8, color: 'rgba(115, 195, 255, 0.42)' });
+          }
+        }
+
+        const target = state.targetPoint;
+        const targetAbility = getAbility(state.selected);
+        const targetRadius = clamp((targetAbility.radius || 24) * 0.15, 4, 7.8);
+        polys.push({ type: 'groundRing', depth: 1900, x: target.x, z: target.z, y: 0.12, radius: targetRadius, color: state.cooldowns[state.selected] > 0.01 ? 'rgba(255, 120, 120, 0.6)' : 'rgba(255, 222, 125, 0.88)', width: 2.4 });
+        polys.push({ type: 'groundCross', depth: 1899, x: target.x, z: target.z, y: 0.13, radius: 2.2, color: 'rgba(255,255,255,0.86)', width: 1.5 });
+
+        polys.sort((a, b) => b.depth - a.depth);
+        sprites.sort((a, b) => b.depth - a.depth);
+
+        for (const poly of polys) {
+          if (poly.type === 'line') {
+            ctx.strokeStyle = poly.color;
+            ctx.lineWidth = poly.width;
+            ctx.beginPath();
+            ctx.moveTo(poly.line[0].x, poly.line[0].y);
+            ctx.lineTo(poly.line[1].x, poly.line[1].y);
+            ctx.stroke();
+            continue;
+          }
+
+          if (poly.type === 'polyline') {
+            ctx.strokeStyle = poly.color;
+            ctx.lineWidth = poly.width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(poly.points[0].x, poly.points[0].y);
+            for (let i = 1; i < poly.points.length; i++) ctx.lineTo(poly.points[i].x, poly.points[i].y);
+            ctx.stroke();
+            ctx.lineCap = 'butt';
+            continue;
+          }
+
+          if (poly.type === 'groundRing' || poly.type === 'groundDisk' || poly.type === 'groundCross' || poly.type === 'groundRing3D' || poly.type === 'orbitalRing') {
+            drawSpecial(poly);
+            continue;
+          }
+
+          ctx.globalAlpha = poly.alpha ?? 1;
+          ctx.fillStyle = poly.color;
+          ctx.beginPath();
+          ctx.moveTo(poly.points[0].x, poly.points[0].y);
+          for (let i = 1; i < poly.points.length; i++) ctx.lineTo(poly.points[i].x, poly.points[i].y);
+          ctx.closePath();
+          ctx.fill();
+          if (poly.stroke) {
+            ctx.strokeStyle = poly.stroke;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+        }
+
+        for (const s of sprites) {
+          ctx.save();
+          ctx.globalAlpha = s.alpha ?? 1;
+          if (s.glow) {
+            const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 2.2);
+            g.addColorStop(0, s.color.replace(/rgba?\(([^)]+)\)/, (m, inner) => {
+              const parts = inner.split(',').map(v => v.trim());
+              return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 0.9)`;
+            }));
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r * 2.2, 0, TAU);
+            ctx.fill();
+          }
+          if (s.square) {
+            ctx.translate(s.x, s.y);
+            ctx.rotate(s.rotation || 0);
+            ctx.fillStyle = s.color;
+            ctx.fillRect(-s.r, -s.r, s.r * 2, s.r * 2);
+          } else {
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, TAU);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawSpecial(poly) {
+        if (poly.type === 'groundRing' || poly.type === 'groundDisk' || poly.type === 'groundCross') {
+          const samples = poly.type === 'groundCross' ? 0 : 42;
+          if (poly.type === 'groundCross') {
+            const a = [
+              projectPoint(poly.x - poly.radius, poly.y, poly.z),
+              projectPoint(poly.x + poly.radius, poly.y, poly.z),
+              projectPoint(poly.x, poly.y, poly.z - poly.radius),
+              projectPoint(poly.x, poly.y, poly.z + poly.radius)
+            ];
+            if (a.every(Boolean)) {
+              ctx.strokeStyle = poly.color;
+              ctx.lineWidth = poly.width;
+              ctx.beginPath();
+              ctx.moveTo(a[0].x, a[0].y); ctx.lineTo(a[1].x, a[1].y);
+              ctx.moveTo(a[2].x, a[2].y); ctx.lineTo(a[3].x, a[3].y);
+              ctx.stroke();
+            }
+            return;
+          }
+
+          const pts = [];
+          for (let i = 0; i <= samples; i++) {
+            const t = (i / samples) * TAU;
+            const p = projectPoint(poly.x + Math.cos(t) * poly.radius, poly.y, poly.z + Math.sin(t) * poly.radius);
+            if (p) pts.push(p);
+          }
+          if (pts.length < 3) return;
+          if (poly.type === 'groundDisk') {
+            ctx.fillStyle = poly.color;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.strokeStyle = poly.color;
+            ctx.lineWidth = poly.width;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            ctx.stroke();
+          }
+          return;
+        }
+
+        if (poly.type === 'groundRing3D') {
+          const pts = [];
+          const steps = 32;
+          for (let i = 0; i <= steps; i++) {
+            const t = poly.rotation + (i / steps) * TAU;
+            const px = poly.x + Math.cos(t) * poly.radius;
+            const py = poly.y + Math.sin(t * 1.1 + state.time * 1.6) * 0.9;
+            const pz = poly.z + Math.sin(t) * poly.radius;
+            const p = projectPoint(px, py, pz);
+            if (p) pts.push(p);
+          }
+          if (pts.length > 1) {
+            ctx.strokeStyle = poly.color;
+            ctx.lineWidth = poly.width;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            ctx.stroke();
+          }
+          return;
+        }
+
+        if (poly.type === 'orbitalRing') {
+          const pts = [];
+          const steps = 48;
+          for (let i = 0; i <= steps; i++) {
+            const t = poly.rotation + (i / steps) * TAU;
+            const px = poly.x + Math.cos(t) * poly.radius;
+            const py = poly.y + Math.sin(t) * poly.radius * poly.tilt;
+            const pz = poly.z + Math.sin(t) * poly.radius;
+            const p = projectPoint(px, py, pz);
+            if (p) pts.push(p);
+          }
+          if (pts.length > 1) {
+            ctx.strokeStyle = poly.color;
+            ctx.lineWidth = poly.width;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      function tick(timestamp) {
+        if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+        const dt = Math.min(1 / 30, (timestamp - state.lastTimestamp) / 1000);
+        state.lastTimestamp = timestamp;
+        state.time += dt;
+
+        updateCamera(dt);
+        updateCooldowns(dt);
+        updatePending(dt);
+        updateProjectiles(dt);
+        updateEffects(dt);
+        updateDebris(dt);
+        updateGrowth(dt);
+        updateMission(dt);
+        decayCombo(dt);
+
+        if (state.toastTimer > 0) {
+          state.toastTimer -= dt;
+          if (state.toastTimer <= 0) toastEl.classList.remove('show');
+        }
+
+        state.flash = Math.max(0, state.flash - dt * 2.4);
+        flashEl.style.opacity = String(clamp(state.flash, 0, 1));
+
+        if (state.saveTimer > 0) {
+          state.saveTimer -= dt;
+          if (state.saveTimer <= 0) saveProfile();
+        }
+
+        state.statsRefresh -= dt;
+        if (state.statsRefresh <= 0) {
+          state.uiNeedsRefresh = true;
+          state.statsRefresh = 0.12;
+        }
+        refreshUi();
+        renderWorld();
+
+        requestAnimationFrame(tick);
+      }
+
+      function onPointerMove(event) {
+        const rect = canvas.getBoundingClientRect();
+        state.mouse.x = event.clientX - rect.left;
+        state.mouse.y = event.clientY - rect.top;
+        state.mouse.inside = true;
+        if (state.rightDrag) {
+          const dx = event.clientX - state.lastPointer.x;
+          const dy = event.clientY - state.lastPointer.y;
+          state.camera.yaw -= dx * 0.0055;
+          state.camera.pitch += dy * 0.0048;
+          state.lastPointer.x = event.clientX;
+          state.lastPointer.y = event.clientY;
+        }
+      }
+
+      function isUiTarget(target) {
+        return !!target.closest('#hud, #shopOverlay');
+      }
+
+      function onPointerDown(event) {
+        ensureAudio();
+        if (event.button === 2) {
+          state.rightDrag = true;
+          state.lastPointer.x = event.clientX;
+          state.lastPointer.y = event.clientY;
+          return;
+        }
+        if (event.button !== 0) return;
+        if (isUiTarget(event.target)) return;
+        castPower(state.selected, { x: state.targetPoint.x, y: 0, z: state.targetPoint.z });
+      }
+
+      function onPointerUp(event) {
+        if (event.button === 2) state.rightDrag = false;
+      }
+
+      function onWheel(event) {
+        if (isUiTarget(event.target)) return;
+        event.preventDefault();
+        state.camera.radius *= 1 + Math.sign(event.deltaY) * 0.09;
+      }
+
+      function normalizeKey(key) {
+        return key.length === 1 ? key.toLowerCase() : key;
+      }
+
+      function onKeyDown(event) {
+        ensureAudio();
+        const key = normalizeKey(event.key);
+        if (event.repeat) {
+          state.keys.add(key);
+          return;
+        }
+
+        if (key >= '1' && key <= '6') {
+          selectSlot(Number(key) - 1);
+          if (state.shopOpen) renderShop();
+          return;
+        }
+
+        if (key === 'b' || key === 'p' || key === 'Tab') {
+          event.preventDefault();
+          toggleShop();
+          return;
+        }
+
+        if (key === 'Escape' && state.shopOpen) {
+          toggleShop(false);
+          return;
+        }
+
+        if (key === 'r') {
+          resetWorld(state.worldSeed + 1);
+          return;
+        }
+
+        state.keys.add(key);
+      }
+
+      function onKeyUp(event) {
+        state.keys.delete(normalizeKey(event.key));
+      }
+
+      function installEvents() {
+        window.addEventListener('resize', resize);
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('wheel', onWheel, { passive: false });
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        canvas.addEventListener('pointerleave', () => { state.mouse.inside = false; state.rightDrag = false; });
+        shopButtonEl.addEventListener('click', () => toggleShop(true));
+        closeShopEl.addEventListener('click', () => toggleShop(false));
+        shopOverlayEl.addEventListener('pointerdown', (event) => {
+          if (event.target === shopOverlayEl) toggleShop(false);
+        });
+      }
+
+      function init() {
+        loadProfile();
+        buildPowersUi();
+        resize();
+        resetWorld(1);
+        refreshUi(true);
+        installEvents();
+        requestAnimationFrame(tick);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>KICKPUSH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap">
+  <meta name="description" content="A Skate 3–style skateboarding sandbox. Kickflips, heelflips, shuvits, grinds, manuals and whole-body front/back flips with a THPS-style combo-banking system." />
+  <meta property="og:title" content="KICKPUSH" />
+  <meta property="og:description" content="A Skate 3–style skateboarding sandbox. Kickflips, heelflips, shuvits, grinds, manuals and whole-body front/back flips with a THPS-style combo-banking system." />
+  <meta property="og:image" content="https://windy-song-442.higgsfield.gg/og/thumbnail.png" />
+  <link rel="icon" href="https://windy-song-442.higgsfield.gg/og/favicon.png" />
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0a0a;
+      font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    #game {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #0a0a0a;
+    }
+    #fallback {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      width: min(460px, calc(100vw - 32px));
+      box-sizing: border-box;
+      padding: 22px;
+      border: 1px solid #252525;
+      border-radius: 20px;
+      background: rgba(10,10,10,.88);
+      color: #fff;
+      text-align: center;
+      display: none;
+    }
+    #fallback h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+    #fallback p {
+      margin: 8px 0 18px;
+      color: #c9c9c9;
+      line-height: 1.4;
+    }
+    a.button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: #d4ff4d;
+      color: #0a0a0a;
+      text-decoration: none;
+      font: 700 11px/1 'Space Grotesk', system-ui, sans-serif;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div id="fallback">
+    <h1>KICKPUSH</h1>
+    <p>This browser file loads the original hosted game and needs internet access.</p>
+    <a class="button" href="https://windy-song-442.higgsfield.gg/?__raw=1" target="_blank" rel="noopener">Open Game</a>
+  </div>
+
+  <iframe
+    id="game"
+    title="KICKPUSH"
+    src="https://windy-song-442.higgsfield.gg/?__raw=1"
+    allow="autoplay; fullscreen; pointer-lock; gamepad; accelerometer; gyroscope; magnetometer; clipboard-write; encrypted-media; xr-spatial-tracking; microphone; camera"
+    allowfullscreen>
+  </iframe>
+
+  <script>
+    const iframe = document.getElementById('game');
+    const fallback = document.getElementById('fallback');
+    const failTimer = setTimeout(() => { fallback.style.display = 'block'; }, 5000);
+    iframe.addEventListener('load', () => clearTimeout(failTimer));
+  </script>
+</body>
+</html>

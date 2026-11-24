@@ -57,6 +57,13 @@
     .games { display: grid; gap: 24px; padding-bottom: 40px; }
     @media (min-width: 720px) { .games { grid-template-columns: 1fr 1fr; } }
 
+    .other-group { grid-column: 1 / -1; margin-top: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); }
+    .other-group summary { cursor: pointer; padding: 22px 28px; font-size: 1.5rem; font-weight: 700; }
+    .other-group summary:hover { color: var(--accent2); }
+    .other-group summary span { margin-left: 10px; color: var(--text-dim); font-size: 0.9rem; font-weight: 400; }
+    .other-grid { display: grid; gap: 24px; padding: 0 24px 24px; }
+    @media (min-width: 720px) { .other-grid { grid-template-columns: 1fr 1fr; } }
+
     .section-title { grid-column: 1 / -1; font-size: 1.6rem; margin-top: 24px; }
 
     .card {
@@ -128,6 +135,14 @@
   </header>
 
   <main class="wrap games">
+    <section class="card">
+      <span class="card-emoji">✈️</span>
+      <h2>Skybreakers</h2>
+      <p>Take to the skies in a browser flight combat game.</p>
+      <div class="tags"><span class="tag">Flight Combat</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./skybreakers.html">▶ Play now</a></div>
+    </section>
+
     <section class="card wide">
       <span class="card-emoji">🏎️</span>
       <h2>Chicane: Full Throttle 3D</h2>
@@ -183,7 +198,131 @@
         <a class="btn btn-src" href="https://github.com/Lacjamm/godot.island">Source on GitHub</a>
       </div>
     </section>
-    <h2 class="section-title">Other</h2>
+    <h2 class="section-title">More Games</h2>
+
+    <section class="card">
+      <span class="card-emoji">🌆</span>
+      <h2>God of Destruction 2</h2>
+      <p>A city destruction sandbox with powers to unleash on the environment.</p>
+      <div class="tags"><span class="tag">Destruction</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./god-of-destruction-2.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">💠</span>
+      <h2>Neon Rift</h2>
+      <p>A neon action game with stages and combat.</p>
+      <div class="tags"><span class="tag">Action</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./neon-rift.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🛹</span>
+      <h2>KICKPUSH</h2>
+      <p>A skateboarding sandbox with tricks, grinds, manuals, and combos.</p>
+      <div class="tags"><span class="tag">Skating</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./kickpush.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🕸️</span>
+      <h2>Web-Slinger</h2>
+      <p>Swing across the city in a browser superhero game.</p>
+      <div class="tags"><span class="tag">Action</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./web-slinger.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🌪️</span>
+      <h2>Destruction Sandbox Mini</h2>
+      <p>Experiment with disasters and destruction in a city sandbox.</p>
+      <div class="tags"><span class="tag">Sandbox</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./destruction-sandbox-mini.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🌃</span>
+      <h2>City Destruction V2</h2>
+      <p>Cause chaos across a neon city.</p>
+      <div class="tags"><span class="tag">Destruction</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./city-destruction-v2.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🧬</span>
+      <h2>Monster Maker Mayhem</h2>
+      <p>Create monsters and set them loose.</p>
+      <div class="tags"><span class="tag">Creator</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./monster-maker-mayhem.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🪐</span>
+      <h2>Tiny Planet Tycoon</h2>
+      <p>Build and manage a tiny planet.</p>
+      <div class="tags"><span class="tag">Simulation</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./tiny-planet-tycoon.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🦖</span>
+      <h2>Growzilla</h2>
+      <p>Grow into a giant creature and devour the world around you.</p>
+      <div class="tags"><span class="tag">Arcade</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./growzilla.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🧱</span>
+      <h2>Voxel Crusher</h2>
+      <p>Smash and crush voxel structures.</p>
+      <div class="tags"><span class="tag">Destruction</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./voxel-crusher.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🌍</span>
+      <h2>Impact Response</h2>
+      <p>A global crisis response simulator and experimental game.</p>
+      <div class="tags"><span class="tag">Simulation</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./impact-response.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🏁</span>
+      <h2>APEX GP</h2>
+      <p>Race formula cars in a browser racing game.</p>
+      <div class="tags"><span class="tag">Racing</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./apex-gp.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">✨</span>
+      <h2>Aetherfall</h2>
+      <p>Explore a world of godlike powers and large-scale destruction.</p>
+      <div class="tags"><span class="tag">Sandbox</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./aetherfall.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">⚽</span>
+      <h2>Grand Final Fever</h2>
+      <p>Play a football game inspired by the energy of a grand final.</p>
+      <div class="tags"><span class="tag">Sports</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./grand-final-fever.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🏙️</span>
+      <h2>Destruction City 3D</h2>
+      <p>Tear through a destructible 3D city.</p>
+      <div class="tags"><span class="tag">3D Destruction</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./destruction-city-3d.html">▶ Play now</a></div>
+    </section>
+
+    <details class="other-group">
+      <summary>Other <span>4 smaller games</span></summary>
+      <div class="other-grid">
 
     <section class="card">
       <span class="card-emoji">🍬</span>
@@ -216,6 +355,8 @@
       <div class="tags"><span class="tag">Sandbox</span><span class="tag">Action</span></div>
       <div class="actions"><a class="btn btn-play" href="./dummy-mayhem.html">▶ Play now</a></div>
     </section>
+      </div>
+    </details>
   </main>
 
   <footer class="wrap">

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WEB-SLINGER</title>
+<meta name="description" content="WEB-SLINGER clean browser launcher with no top bar and a title-only loading screen.">
+<style>
+  :root{color-scheme:dark;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#070707;}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#070707;display:block;z-index:1;}
+  #loading{
+    position:fixed;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;text-align:center;
+    background:
+      radial-gradient(circle at 22% 28%, rgba(57,146,255,.12), transparent 34%),
+      radial-gradient(circle at 78% 70%, rgba(255,48,170,.10), transparent 34%),
+      #070707;
+    transition:opacity .35s ease,visibility .35s ease;
+  }
+  #loading.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+  .card{
+    width:min(760px,calc(100vw - 48px));
+    padding:46px 34px 42px;
+    border-radius:24px;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 28px 90px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08);
+    backdrop-filter:blur(10px);
+  }
+  h1{
+    margin:0;
+    font:800 clamp(42px,6vw,68px)/.95 system-ui,-apple-system,Segoe UI,sans-serif;
+    letter-spacing:.105em;
+    text-transform:uppercase;
+    color:#fff;
+    background:linear-gradient(90deg,#ffffff 0%,#a9dcff 36%,#f6b7ff 68%,#ffffff 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:0 0 24px rgba(96,185,255,.18),0 0 38px rgba(255,93,218,.14);
+  }
+</style>
+</head>
+<body>
+<div id="loading" aria-label="Loading WEB-SLINGER"><div class="card"><h1>WEB-SLINGER</h1></div></div>
+<iframe id="game" title="WEB-SLINGER" src="https://steady-summit-899.higgsfield.gg/?__raw=1" allow="autoplay; fullscreen; pointer-lock; gamepad; accelerometer; gyroscope; magnetometer; clipboard-write; encrypted-media; xr-spatial-tracking; microphone; camera" allowfullscreen></iframe>
+<script>
+  const loading = document.getElementById('loading');
+  const game = document.getElementById('game');
+  let hidden = false;
+  function hideLoading(){
+    if(hidden || !loading) return;
+    hidden = true;
+    loading.classList.add('hidden');
+    setTimeout(() => loading.remove(), 500);
+  }
+  game.addEventListener('load', () => setTimeout(hideLoading, 250));
+</script>
+</body>
+</html>

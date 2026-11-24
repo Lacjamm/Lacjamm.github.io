@@ -1,0 +1,2008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global Crisis Response Simulator</title>
+  <style>
+    :root {
+      --bg: #07101d;
+      --panel: rgba(9, 16, 31, 0.72);
+      --panel-strong: rgba(8, 14, 26, 0.88);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.16);
+      --text: #e8f2ff;
+      --muted: #8fa8c9;
+      --accent: #64d8ff;
+      --accent-2: #8ef7c0;
+      --warning: #ffb36a;
+      --danger: #ff6c6c;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --radius: 20px;
+      font-synthesis-weight: none;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(70, 122, 255, 0.10), transparent 28%),
+        radial-gradient(circle at 100% 15%, rgba(0, 193, 255, 0.08), transparent 24%),
+        linear-gradient(180deg, #07101d 0%, #040913 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(to bottom, rgba(255,255,255,0.015), rgba(255,255,255,0));
+      opacity: 0.8;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 320px minmax(540px, 1fr) 320px;
+      gap: 18px;
+      height: 100vh;
+      padding: 18px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-strong) 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(120%);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel-inner {
+      height: 100%;
+      overflow: auto;
+      padding: 18px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.18) transparent;
+    }
+
+    .panel-inner::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .panel-inner::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+
+    h1 {
+      font-size: 1.38rem;
+      line-height: 1.1;
+      margin: 0 0 8px;
+      letter-spacing: 0.01em;
+    }
+
+    h2, h3 {
+      font-size: 0.95rem;
+      margin: 0;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #c8d8ef;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), transparent 36%),
+        linear-gradient(135deg, rgba(100,216,255,0.85), rgba(142,247,192,0.45));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 30px rgba(100,216,255,0.18);
+      color: #05111d;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .choice {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 12px 13px;
+      cursor: pointer;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .choice::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(100,216,255,0.7), transparent);
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .choice:hover {
+      transform: translateY(-1px);
+      border-color: rgba(100, 216, 255, 0.28);
+      background: rgba(255,255,255,0.045);
+    }
+
+    .choice.active {
+      border-color: rgba(100,216,255,0.48);
+      background: linear-gradient(180deg, rgba(100,216,255,0.10), rgba(255,255,255,0.035));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 30px rgba(100,216,255,0.08);
+    }
+
+    .choice.active::after { opacity: 1; }
+
+    .choice-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-weight: 650;
+      font-size: 0.97rem;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
+    .choice-meta,
+    .choice-copy {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: #d7e7fb;
+      font-size: 0.74rem;
+      letter-spacing: 0.02em;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+    }
+
+    .action-row,
+    .segmented {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      border-radius: 14px;
+      color: #08111f;
+      font-weight: 700;
+      font-size: 0.92rem;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(100,216,255,1), rgba(142,247,192,0.9));
+      box-shadow: 0 10px 24px rgba(100,216,255,0.18);
+      transition: transform 180ms ease, filter 180ms ease, opacity 180ms ease;
+    }
+
+    button.secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .segmented button {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: none;
+      padding: 11px 12px;
+      font-size: 0.86rem;
+    }
+
+    .segmented button.active {
+      color: #08111f;
+      background: linear-gradient(135deg, rgba(100,216,255,1), rgba(142,247,192,0.9));
+      border-color: transparent;
+      box-shadow: 0 10px 24px rgba(100,216,255,0.18);
+    }
+
+    .stage {
+      position: relative;
+      min-height: 0;
+      border-radius: 28px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 15%, rgba(101, 146, 255, 0.09), transparent 35%),
+        linear-gradient(180deg, rgba(7,13,28,0.76), rgba(4,8,18,0.92));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .overlay {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .overlay.top { top: 18px; }
+    .overlay.bottom { bottom: 18px; align-items: flex-end; justify-content: space-between; }
+
+    .pill,
+    .legend,
+    .footnote {
+      background: rgba(8, 14, 28, 0.52);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 9px 12px;
+      backdrop-filter: blur(12px);
+      color: #d2e1f6;
+      font-size: 0.83rem;
+      line-height: 1.2;
+    }
+
+    .legend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; border-radius: 16px; }
+
+    .footnote {
+      border-radius: 16px;
+      max-width: min(430px, 100%);
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .dot.region {
+      background: radial-gradient(circle at 40% 35%, #fff, #89f1ff 45%, rgba(100,216,255,0.25) 100%);
+      box-shadow: 0 0 10px rgba(100,216,255,0.6);
+    }
+
+    .dot.event {
+      background: radial-gradient(circle at 50% 50%, #fff, #ffb974 40%, rgba(255,120,90,0.3) 100%);
+      box-shadow: 0 0 10px rgba(255,150,80,0.55);
+    }
+
+    .dot.route {
+      background: linear-gradient(90deg, #9af4df, #74d6ff);
+      box-shadow: 0 0 10px rgba(116,214,255,0.55);
+    }
+
+    .score-card {
+      position: relative;
+      padding: 16px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(100,216,255,0.14), transparent 40%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .score-label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+      color: #c7d7ee;
+      margin-bottom: 4px;
+    }
+
+    .score-value {
+      font-size: 2.35rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .score-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .metrics {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      padding: 12px 13px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .metric-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .metric-name {
+      font-size: 0.82rem;
+      color: #d5e3f8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .metric-value {
+      font-size: 1.02rem;
+      font-weight: 700;
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(116,214,255,0.95), rgba(255,182,106,0.95));
+      box-shadow: 0 0 16px rgba(116,214,255,0.25);
+      transition: width 120ms linear;
+    }
+
+    .log {
+      display: grid;
+      gap: 10px;
+    }
+
+    .log-entry {
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+      padding: 11px 12px;
+    }
+
+    .log-time {
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      color: #9cb5d2;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .log-copy {
+      font-size: 0.88rem;
+      color: #e0ecfb;
+      line-height: 1.45;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .mini-card {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .mini-label {
+      color: #abc3df;
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .mini-value {
+      font-weight: 800;
+      font-size: 1.02rem;
+    }
+
+    .scenario-note {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 1280px) {
+      #app {
+        grid-template-columns: 300px minmax(420px, 1fr) 300px;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      html, body { overflow: auto; }
+      #app {
+        height: auto;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+      }
+      .panel,
+      .stage { min-height: 420px; }
+      .stage { height: 74vh; }
+    }
+
+    @media (max-width: 720px) {
+      #app { padding: 12px; gap: 12px; }
+      .overlay { left: 12px; right: 12px; }
+      .overlay.bottom { gap: 8px; }
+      .legend, .footnote, .pill { font-size: 0.78rem; }
+      .action-row,
+      .segmented,
+      .mini-grid { grid-template-columns: 1fr; }
+      .stage { height: 68vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside class="panel">
+      <div class="panel-inner">
+        <div class="brand">
+          <div class="brand-mark">GR</div>
+          <div>
+            <h1>Global Crisis Response Simulator</h1>
+            <div class="subtle">A browser-based emergency exercise interface with fictional regions, scenario variety, efficient canvas rendering, and service-impact metrics instead of casualty modeling.</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Training Regions</h3>
+          <div id="regionList" class="list"></div>
+        </div>
+
+        <div class="section">
+          <h3>Scenario Types</h3>
+          <div id="scenarioList" class="list"></div>
+        </div>
+
+        <div class="section">
+          <h3>Controls</h3>
+          <div class="actions">
+            <div class="action-row">
+              <button id="runBtn">Run Exercise</button>
+              <button id="resetBtn" class="secondary">Reset</button>
+            </div>
+            <div class="action-row">
+              <button id="tourBtn" class="secondary">Auto Tour</button>
+              <button id="pulseBtn" class="secondary">Pulse Preview</button>
+            </div>
+            <div class="segmented" id="qualityRow">
+              <button data-quality="high" class="secondary">High</button>
+              <button data-quality="balanced" class="secondary">Balanced</button>
+              <button data-quality="eco" class="secondary">Eco</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="stage">
+      <canvas id="scene"></canvas>
+      <div class="overlay top">
+        <div class="pill">Region: <strong id="selectedRegionLabel">Aurora Expanse</strong></div>
+        <div class="pill">Scenario: <strong id="selectedScenarioLabel">Solar Storm</strong></div>
+        <div class="pill">Quality: <strong id="qualityLabel">Balanced</strong></div>
+      </div>
+      <div class="overlay bottom">
+        <div class="legend">
+          <span><span class="dot region"></span>Training region</span>
+          <span><span class="dot event"></span>Active impact envelope</span>
+          <span><span class="dot route"></span>Response corridor</span>
+        </div>
+        <div class="footnote">All regions are fictional. Metrics estimate disruption, displacement pressure, and response load for planning exercises, not injuries or fatalities.</div>
+      </div>
+    </main>
+
+    <aside class="panel">
+      <div class="panel-inner">
+        <div class="score-card">
+          <div class="score-label">Overall Impact Score</div>
+          <div id="impactScore" class="score-value">142</div>
+          <div id="impactSummary" class="score-copy">Localized service strain with light logistics pressure and stable recovery capacity.</div>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card">
+            <div class="mini-label">Aid Corridors</div>
+            <div id="aidCorridors" class="mini-value">2 active</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">Staging Readiness</div>
+            <div id="stagingReadiness" class="mini-value">87%</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">Shelter Capacity</div>
+            <div id="shelterCapacity" class="mini-value">71%</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">Regional Mesh</div>
+            <div id="meshStatus" class="mini-value">Nominal</div>
+          </div>
+        </div>
+
+        <div class="metrics" id="metrics"></div>
+
+        <div class="section">
+          <h3>Scenario Notes</h3>
+          <div id="scenarioNote" class="scenario-note"></div>
+        </div>
+
+        <div class="section">
+          <h3>Operations Log</h3>
+          <div id="log" class="log"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    (() => {
+      const TAU = Math.PI * 2;
+      const RAD = Math.PI / 180;
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const smoothstep = (a, b, x) => {
+        const t = clamp((x - a) / (b - a), 0, 1);
+        return t * t * (3 - 2 * t);
+      };
+      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
+      const nowSeconds = () => performance.now() / 1000;
+      const fmt = new Intl.NumberFormat("en-US");
+      const formatCompact = (n) => {
+        if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+        if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 100_000 ? 0 : 1)}K`;
+        return fmt.format(Math.round(n));
+      };
+      const rgba = (rgb, alpha) => `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+      const angularDistance = (a, b) => {
+        const lat1 = a.lat * RAD;
+        const lat2 = b.lat * RAD;
+        const dLon = (b.lon - a.lon) * RAD;
+        return Math.acos(
+          clamp(
+            Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLon),
+            -1,
+            1
+          )
+        );
+      };
+
+      const regions = [
+        {
+          id: "aurora",
+          name: "Aurora Expanse",
+          lat: 64,
+          lon: -38,
+          pop: 0.32,
+          hospitals: 0.62,
+          grid: 0.78,
+          coast: 0.24,
+          wildfire: 0.08,
+          seismic: 0.16,
+          industrial: 0.31,
+          storm: 0.33,
+          solar: 0.96,
+          profile: ["High latitude", "Research grid", "Sparse corridors"]
+        },
+        {
+          id: "cinder",
+          name: "Cinder Coast",
+          lat: 18,
+          lon: -112,
+          pop: 0.74,
+          hospitals: 0.71,
+          grid: 0.83,
+          coast: 0.84,
+          wildfire: 0.57,
+          seismic: 0.42,
+          industrial: 0.66,
+          storm: 0.58,
+          solar: 0.45,
+          profile: ["Dense industry", "Coastal access", "Fire corridors"]
+        },
+        {
+          id: "delta",
+          name: "Delta Reach",
+          lat: 8,
+          lon: 54,
+          pop: 0.96,
+          hospitals: 0.59,
+          grid: 0.64,
+          coast: 0.92,
+          wildfire: 0.29,
+          seismic: 0.22,
+          industrial: 0.73,
+          storm: 0.89,
+          solar: 0.36,
+          profile: ["Megacity delta", "Port network", "Flood-sensitive"]
+        },
+        {
+          id: "meridian",
+          name: "Meridian Isles",
+          lat: -12,
+          lon: 124,
+          pop: 0.67,
+          hospitals: 0.63,
+          grid: 0.58,
+          coast: 0.97,
+          wildfire: 0.35,
+          seismic: 0.57,
+          industrial: 0.44,
+          storm: 0.84,
+          solar: 0.42,
+          profile: ["Island chain", "Maritime reliance", "Fast evacuation"]
+        },
+        {
+          id: "verdant",
+          name: "Verdant Belt",
+          lat: -5,
+          lon: -16,
+          pop: 0.54,
+          hospitals: 0.68,
+          grid: 0.61,
+          coast: 0.18,
+          wildfire: 0.81,
+          seismic: 0.19,
+          industrial: 0.33,
+          storm: 0.28,
+          solar: 0.39,
+          profile: ["Forest interior", "River crossings", "Air quality risk"]
+        },
+        {
+          id: "obsidian",
+          name: "Obsidian Steppe",
+          lat: 29,
+          lon: 82,
+          pop: 0.41,
+          hospitals: 0.47,
+          grid: 0.52,
+          coast: 0.05,
+          wildfire: 0.64,
+          seismic: 0.76,
+          industrial: 0.29,
+          storm: 0.12,
+          solar: 0.31,
+          profile: ["Dry plateau", "Long haul roads", "Seismic exposure"]
+        },
+        {
+          id: "sunline",
+          name: "Sunline Cape",
+          lat: -34,
+          lon: 34,
+          pop: 0.58,
+          hospitals: 0.72,
+          grid: 0.77,
+          coast: 0.84,
+          wildfire: 0.47,
+          seismic: 0.34,
+          industrial: 0.52,
+          storm: 0.62,
+          solar: 0.44,
+          profile: ["Trade junction", "Mixed terrain", "Strong hospitals"]
+        },
+        {
+          id: "polar",
+          name: "Polar Gate",
+          lat: 74,
+          lon: 118,
+          pop: 0.12,
+          hospitals: 0.56,
+          grid: 0.69,
+          coast: 0.31,
+          wildfire: 0.01,
+          seismic: 0.08,
+          industrial: 0.22,
+          storm: 0.22,
+          solar: 0.98,
+          profile: ["Arctic relay", "Satellite focus", "Sparse population"]
+        }
+      ];
+
+      const scenarios = [
+        {
+          id: "solar",
+          icon: "☀",
+          name: "Solar Storm",
+          blurb: "High-latitude geomagnetic stress challenges power corridors, satellite links, and long-haul communications.",
+          base: 0.55,
+          duration: 24,
+          colors: {
+            core: [100, 216, 255],
+            glow: [142, 247, 192],
+            flare: [186, 255, 244]
+          }
+        },
+        {
+          id: "meteor",
+          icon: "☄",
+          name: "Meteor Fragmentation",
+          blurb: "A fast atmospheric breakup produces localized shock, debris, and rapid sheltering demand.",
+          base: 0.82,
+          duration: 22,
+          colors: {
+            core: [255, 182, 106],
+            glow: [255, 109, 89],
+            flare: [255, 230, 186]
+          }
+        },
+        {
+          id: "seismic",
+          icon: "⬡",
+          name: "Seismic Rift",
+          blurb: "Transport arteries and brittle utility corridors are stressed by fault rupture and aftershock planning.",
+          base: 0.76,
+          duration: 26,
+          colors: {
+            core: [166, 145, 255],
+            glow: [92, 171, 255],
+            flare: [219, 206, 255]
+          }
+        },
+        {
+          id: "surge",
+          icon: "≈",
+          name: "Storm Surge",
+          blurb: "Coastal systems face evacuation pressure, grid strain, route closures, and shelter turnover.",
+          base: 0.71,
+          duration: 28,
+          colors: {
+            core: [100, 221, 255],
+            glow: [60, 160, 255],
+            flare: [178, 240, 255]
+          }
+        },
+        {
+          id: "wildfire",
+          icon: "✦",
+          name: "Wildfire Front",
+          blurb: "Rapid perimeter growth raises smoke stress, staging complexity, and rolling relocation demand.",
+          base: 0.69,
+          duration: 30,
+          colors: {
+            core: [255, 170, 80],
+            glow: [255, 98, 62],
+            flare: [255, 215, 147]
+          }
+        },
+        {
+          id: "industrial",
+          icon: "▣",
+          name: "Industrial Chain Reaction",
+          blurb: "A dense industrial cluster forces layered shutdowns, plume monitoring, and medical routing.",
+          base: 0.64,
+          duration: 20,
+          colors: {
+            core: [255, 126, 126],
+            glow: [255, 196, 112],
+            flare: [255, 221, 194]
+          }
+        }
+      ];
+
+      const hubs = [
+        { name: "North Relay", lat: 56, lon: -140 },
+        { name: "Atlas Hub", lat: 36, lon: 9 },
+        { name: "Equator Port", lat: -2, lon: 152 },
+        { name: "Southern Dock", lat: -47, lon: -62 }
+      ];
+
+      const surfaceBands = [
+        { base: -26, amp: 8.5, freq: 1.9, phase: 0.5, width: 14, alpha: 0.12, rgb: [72, 144, 127] },
+        { base: -4, amp: 6.2, freq: 2.4, phase: 1.1, width: 18, alpha: 0.1, rgb: [90, 160, 120] },
+        { base: 19, amp: 9.8, freq: 2.1, phase: 2.4, width: 12, alpha: 0.09, rgb: [124, 175, 139] },
+        { base: 40, amp: 5.4, freq: 2.8, phase: 3.2, width: 10, alpha: 0.08, rgb: [93, 135, 180] },
+        { base: -40, amp: 4.8, freq: 2.7, phase: 4.1, width: 9, alpha: 0.07, rgb: [65, 116, 164] }
+      ];
+
+      const qualityProfiles = {
+        high: { dpr: 1.5, stars: 520, particles: 180, ribbonStep: 4, gridStep: 5 },
+        balanced: { dpr: 1.35, stars: 340, particles: 120, ribbonStep: 6, gridStep: 7 },
+        eco: { dpr: 1.0, stars: 170, particles: 65, ribbonStep: 10, gridStep: 10 }
+      };
+
+      const metricDefs = [
+        { id: "households", label: "Households Disrupted", max: 2_600_000, format: (v) => formatCompact(v) },
+        { id: "evac", label: "Evacuation Demand", max: 1_300_000, format: (v) => formatCompact(v) },
+        { id: "grid", label: "Grid Disruption", max: 100, format: (v) => `${Math.round(v)}%` },
+        { id: "hospital", label: "Hospital Strain", max: 100, format: (v) => `${Math.round(v)}%` },
+        { id: "logistics", label: "Logistics Delay", max: 72, format: (v) => `${v.toFixed(v > 10 ? 0 : 1)} hrs` },
+        { id: "air", label: "Air Quality Stress", max: 100, format: (v) => `${Math.round(v)}%` },
+        { id: "recovery", label: "Recovery Progress", max: 100, format: (v) => `${Math.round(v)}%` }
+      ];
+
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d");
+      const regionList = document.getElementById("regionList");
+      const scenarioList = document.getElementById("scenarioList");
+      const metricsEl = document.getElementById("metrics");
+      const logEl = document.getElementById("log");
+      const selectedRegionLabel = document.getElementById("selectedRegionLabel");
+      const selectedScenarioLabel = document.getElementById("selectedScenarioLabel");
+      const qualityLabel = document.getElementById("qualityLabel");
+      const impactScoreEl = document.getElementById("impactScore");
+      const impactSummaryEl = document.getElementById("impactSummary");
+      const scenarioNoteEl = document.getElementById("scenarioNote");
+      const aidCorridorsEl = document.getElementById("aidCorridors");
+      const stagingReadinessEl = document.getElementById("stagingReadiness");
+      const shelterCapacityEl = document.getElementById("shelterCapacity");
+      const meshStatusEl = document.getElementById("meshStatus");
+
+      const state = {
+        selectedRegionIndex: 0,
+        selectedScenarioIndex: 0,
+        quality: "balanced",
+        running: false,
+        previewPulse: false,
+        autoTour: false,
+        autoTourTimer: 0,
+        time: 0,
+        viewLon: 0,
+        viewLat: 14,
+        lastTs: 0,
+        sim: {
+          elapsed: 0,
+          duration: scenarios[0].duration,
+          logCursor: 0,
+          visualStrength: 0.16,
+          impactScore: 142,
+          readiness: 87,
+          shelter: 71,
+          corridors: 2,
+          mesh: "Nominal",
+          target: {
+            households: 90_000,
+            evac: 22_000,
+            grid: 18,
+            hospital: 15,
+            logistics: 2.5,
+            air: 6,
+            recovery: 28
+          },
+          current: {
+            households: 78_000,
+            evac: 18_000,
+            grid: 14,
+            hospital: 12,
+            logistics: 2.1,
+            air: 5,
+            recovery: 26
+          }
+        },
+        logs: [],
+        logPlan: [],
+        markerScreen: [],
+        sphere: { x: 0, y: 0, r: 0 },
+        starsCanvas: document.createElement("canvas"),
+        particles: Array.from({ length: 220 }, () => ({ active: false, x: 0, y: 0, vx: 0, vy: 0, ttl: 0, life: 0, size: 0, glow: 0 })),
+        twinkles: Array.from({ length: 28 }, () => ({ x: Math.random(), y: Math.random(), phase: Math.random() * TAU, r: Math.random() * 1.5 + 0.3 })),
+        uiMetricMap: new Map()
+      };
+
+      function selectedRegion() {
+        return regions[state.selectedRegionIndex];
+      }
+
+      function selectedScenario() {
+        return scenarios[state.selectedScenarioIndex];
+      }
+
+      function scenarioSensitivity(region, scenario) {
+        switch (scenario.id) {
+          case "solar":
+            return 0.7 + region.solar * 0.92 + (1 - region.grid) * 0.28;
+          case "meteor":
+            return 0.8 + region.pop * 0.52 + region.industrial * 0.14;
+          case "seismic":
+            return 0.72 + region.seismic * 0.98 + (1 - region.grid) * 0.18;
+          case "surge":
+            return 0.7 + region.coast * 0.96 + region.storm * 0.72;
+          case "wildfire":
+            return 0.72 + region.wildfire * 1.03 + (1 - region.hospitals) * 0.12;
+          case "industrial":
+            return 0.72 + region.industrial * 1.08 + region.pop * 0.28;
+          default:
+            return 1;
+        }
+      }
+
+      function computeTargets(region, scenario) {
+        const severity = scenario.base * scenarioSensitivity(region, scenario) * (0.93 + Math.random() * 0.14);
+        const households = clamp((55_000 + region.pop * 1_650_000) * severity * (scenario.id === "surge" ? 1.12 : 0.9), 18_000, 2_500_000);
+        const evacBase = {
+          solar: 0.18,
+          meteor: 0.73,
+          seismic: 0.58,
+          surge: 0.86,
+          wildfire: 0.78,
+          industrial: 0.37
+        }[scenario.id] || 0.4;
+        const gridBase = {
+          solar: 0.98,
+          meteor: 0.56,
+          seismic: 0.62,
+          surge: 0.72,
+          wildfire: 0.46,
+          industrial: 0.58
+        }[scenario.id] || 0.5;
+        const hospitalBase = {
+          solar: 0.36,
+          meteor: 0.86,
+          seismic: 0.78,
+          surge: 0.56,
+          wildfire: 0.62,
+          industrial: 0.74
+        }[scenario.id] || 0.5;
+        const logisticsBase = {
+          solar: 0.52,
+          meteor: 0.68,
+          seismic: 0.84,
+          surge: 0.78,
+          wildfire: 0.72,
+          industrial: 0.58
+        }[scenario.id] || 0.4;
+        const airBase = {
+          solar: 0.1,
+          meteor: 0.34,
+          seismic: 0.18,
+          surge: 0.21,
+          wildfire: 0.96,
+          industrial: 0.71
+        }[scenario.id] || 0.1;
+
+        const evac = clamp(severity * (120_000 + region.pop * 780_000) * (evacBase + region.coast * 0.12), 4_000, 1_260_000);
+        const grid = clamp(severity * (gridBase * 62 + (1 - region.grid) * 28 + region.coast * 6), 7, 98);
+        const hospital = clamp(severity * (hospitalBase * 60 + region.pop * 18 + (1 - region.hospitals) * 28), 6, 99);
+        const logistics = clamp(severity * (logisticsBase * 34 + region.coast * 12 + region.seismic * 9 + 6), 1.3, 72);
+        const air = clamp(severity * (airBase * 68 + region.wildfire * 24 + region.industrial * 16), 2, 100);
+
+        const readiness = clamp(95 - severity * 26 - region.coast * 5 - region.seismic * 4 + region.grid * 3, 42, 97);
+        const shelter = clamp(86 - evac / 40_000 + region.pop * 10 + region.coast * 3, 22, 96);
+        const corridors = clamp(Math.round(2 + severity * 2.4 + region.coast * 1.2), 2, 5);
+        const recovery = clamp(100 - (grid * 0.32 + hospital * 0.21 + logistics * 0.8 + air * 0.15), 8, 82);
+
+        const impactScore = Math.round(
+          households / 18_000 + evac / 14_000 + grid * 2.2 + hospital * 1.9 + logistics * 3.1 + air * 1.2 + (100 - recovery) * 1.7
+        );
+
+        return {
+          households,
+          evac,
+          grid,
+          hospital,
+          logistics,
+          air,
+          recovery: 0,
+          readiness,
+          shelter,
+          corridors,
+          impactScore,
+          mesh: grid > 72 ? "Frayed" : grid > 45 ? "Stressed" : "Nominal"
+        };
+      }
+
+      function summaryFromImpact(score) {
+        if (score < 220) return "Localized service strain with light logistics pressure and stable recovery capacity.";
+        if (score < 360) return "Moderate multi-system disruption with visible shelter load and focused corridor management.";
+        if (score < 520) return "Significant regional stress requiring sustained transport, grid, and medical coordination.";
+        return "Severe cross-system disruption with extended corridor demand and prolonged stabilization needs.";
+      }
+
+      function buildMetricCards() {
+        metricsEl.innerHTML = "";
+        state.uiMetricMap.clear();
+        metricDefs.forEach((metric) => {
+          const wrap = document.createElement("div");
+          wrap.className = "metric";
+          wrap.innerHTML = `
+            <div class="metric-head">
+              <div class="metric-name">${metric.label}</div>
+              <div class="metric-value">0</div>
+            </div>
+            <div class="bar"><div class="bar-fill"></div></div>
+          `;
+          const valueEl = wrap.querySelector(".metric-value");
+          const fillEl = wrap.querySelector(".bar-fill");
+          state.uiMetricMap.set(metric.id, { valueEl, fillEl, metric });
+          metricsEl.appendChild(wrap);
+        });
+      }
+
+      function renderRegionList() {
+        regionList.innerHTML = "";
+        regions.forEach((region, index) => {
+          const el = document.createElement("div");
+          el.className = `choice ${index === state.selectedRegionIndex ? "active" : ""}`;
+          el.innerHTML = `
+            <div class="choice-title">
+              <span>${region.name}</span>
+              <span>${Math.round(region.pop * 100)}R</span>
+            </div>
+            <div class="choice-copy">Fictional region with ${region.profile.join(" • ")}.</div>
+            <div class="tag-row">
+              <span class="tag">Grid ${Math.round(region.grid * 100)}%</span>
+              <span class="tag">Hospitals ${Math.round(region.hospitals * 100)}%</span>
+              <span class="tag">Coast ${Math.round(region.coast * 100)}%</span>
+            </div>
+          `;
+          el.addEventListener("click", () => {
+            state.selectedRegionIndex = index;
+            state.autoTour = false;
+            document.getElementById("tourBtn").textContent = "Auto Tour";
+            refreshSelectionUI();
+            resetToBaseline(false);
+          });
+          regionList.appendChild(el);
+        });
+      }
+
+      function renderScenarioList() {
+        scenarioList.innerHTML = "";
+        scenarios.forEach((scenario, index) => {
+          const el = document.createElement("div");
+          el.className = `choice ${index === state.selectedScenarioIndex ? "active" : ""}`;
+          el.innerHTML = `
+            <div class="choice-title">
+              <span>${scenario.icon} ${scenario.name}</span>
+              <span>${Math.round(scenario.base * 100)}%</span>
+            </div>
+            <div class="choice-copy">${scenario.blurb}</div>
+          `;
+          el.addEventListener("click", () => {
+            state.selectedScenarioIndex = index;
+            state.autoTour = false;
+            document.getElementById("tourBtn").textContent = "Auto Tour";
+            refreshSelectionUI();
+            resetToBaseline(false);
+          });
+          scenarioList.appendChild(el);
+        });
+      }
+
+      function refreshSelectionUI() {
+        renderRegionList();
+        renderScenarioList();
+        selectedRegionLabel.textContent = selectedRegion().name;
+        selectedScenarioLabel.textContent = selectedScenario().name;
+        qualityLabel.textContent = state.quality.charAt(0).toUpperCase() + state.quality.slice(1);
+        scenarioNoteEl.textContent = selectedScenario().blurb;
+        Array.from(document.querySelectorAll("#qualityRow button")).forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.quality === state.quality);
+        });
+      }
+
+      function resetToBaseline(withLog = true) {
+        const baseline = computeTargets(selectedRegion(), selectedScenario());
+        state.sim.duration = selectedScenario().duration;
+        state.sim.elapsed = 0;
+        state.sim.logCursor = 0;
+        state.sim.visualStrength = 0.18;
+        state.running = false;
+        state.previewPulse = false;
+        state.sim.target = { ...baseline };
+        state.sim.current = {
+          households: baseline.households * 0.08,
+          evac: baseline.evac * 0.06,
+          grid: baseline.grid * 0.18,
+          hospital: baseline.hospital * 0.16,
+          logistics: baseline.logistics * 0.18,
+          air: baseline.air * 0.14,
+          recovery: Math.max(4, baseline.recovery * 0.2)
+        };
+        state.sim.impactScore = Math.max(88, Math.round(baseline.impactScore * 0.24));
+        state.sim.readiness = Math.round(lerp(92, baseline.readiness, 0.35));
+        state.sim.shelter = Math.round(lerp(90, baseline.shelter, 0.25));
+        state.sim.corridors = 2;
+        state.sim.mesh = "Nominal";
+        state.logPlan = buildLogPlan(selectedRegion(), selectedScenario(), baseline);
+        if (withLog) {
+          state.logs = [];
+          pushLog("System", `Loaded ${selectedScenario().name} exercise package for ${selectedRegion().name}.`);
+          pushLog("Ready", "Select Run Exercise to animate the response timeline.");
+        }
+        updatePanels();
+      }
+
+      function buildLogPlan(region, scenario, baseline) {
+        const profileA = {
+          solar: "Regional operators shift satellites and power corridors into protective mode.",
+          meteor: "Rapid sheltering guidance and route clearance teams deploy around the projected footprint.",
+          seismic: "Bridge inspections and utility isolation crews enter first-pass stabilization.",
+          surge: "Coastal districts advance staged departures while water barriers are raised.",
+          wildfire: "Air tankers, perimeter teams, and smoke shelters expand into the outer ring.",
+          industrial: "Facility shutdown teams isolate adjacent assets and reroute medical intake."
+        };
+        const profileB = {
+          solar: "Backup mesh communications go live across high-latitude corridors.",
+          meteor: `Transit screens now report ${Math.round(baseline.logistics)} hour routing delays.` ,
+          seismic: "Aftershock windows are now guiding bridge access and freight prioritization.",
+          surge: `Shelter utilization crosses ${Math.round(100 - baseline.shelter)}% of reserve buffer.`,
+          wildfire: `Air quality stress climbs toward ${Math.round(baseline.air)}% of peak planning thresholds.`,
+          industrial: "Specialized hazmat corridors are active and port traffic is rerouted."
+        };
+        const profileC = {
+          solar: "Grid operators begin rolling restoration by ring-fenced transmission tier.",
+          meteor: `Aid corridors expand to ${baseline.corridors} active lanes for debris clearance and care transport.`,
+          seismic: "Hospitals redistribute noncritical intake to preserve trauma capacity.",
+          surge: `Water and grid technicians prioritize nodes across ${region.name}'s coastal arc.`,
+          wildfire: "Forward staging shifts with wind updates and corridor burn operations.",
+          industrial: "Monitoring teams tighten plume models and expand exclusion routing."
+        };
+
+        return [
+          { at: 0.08, tag: "T+02", text: `Exercise initialized in ${region.name}. ${profileA[scenario.id]}` },
+          { at: 0.24, tag: "T+06", text: profileB[scenario.id] },
+          { at: 0.46, tag: "T+11", text: profileC[scenario.id] },
+          { at: 0.68, tag: "T+17", text: `Staging readiness now reads ${Math.round(baseline.readiness)}% with shelter capacity near ${Math.round(baseline.shelter)}%.` },
+          { at: 0.9, tag: "T+23", text: "Stabilization phase begins with repair crews shifting from containment to recovery sequencing." }
+        ];
+      }
+
+      function pushLog(tag, text) {
+        state.logs.unshift({ tag, text });
+        state.logs = state.logs.slice(0, 8);
+        renderLogs();
+      }
+
+      function renderLogs() {
+        logEl.innerHTML = "";
+        state.logs.forEach((entry) => {
+          const el = document.createElement("div");
+          el.className = "log-entry";
+          el.innerHTML = `<div class="log-time">${entry.tag}</div><div class="log-copy">${entry.text}</div>`;
+          logEl.appendChild(el);
+        });
+      }
+
+      function updatePanels() {
+        metricDefs.forEach((metric) => {
+          const ui = state.uiMetricMap.get(metric.id);
+          if (!ui) return;
+          const value = state.sim.current[metric.id];
+          ui.valueEl.textContent = metric.format(value);
+          ui.fillEl.style.width = `${clamp((value / metric.max) * 100, 0, 100)}%`;
+        });
+
+        impactScoreEl.textContent = fmt.format(state.sim.impactScore);
+        impactSummaryEl.textContent = summaryFromImpact(state.sim.impactScore);
+        aidCorridorsEl.textContent = `${state.sim.corridors} active`;
+        stagingReadinessEl.textContent = `${Math.round(state.sim.readiness)}%`;
+        shelterCapacityEl.textContent = `${Math.round(state.sim.shelter)}%`;
+        meshStatusEl.textContent = state.sim.mesh;
+      }
+
+      function startSimulation() {
+        const baseline = computeTargets(selectedRegion(), selectedScenario());
+        state.running = true;
+        state.previewPulse = false;
+        state.sim.elapsed = 0;
+        state.sim.duration = selectedScenario().duration;
+        state.sim.logCursor = 0;
+        state.sim.target = { ...baseline };
+        state.sim.readiness = 92;
+        state.sim.shelter = 96;
+        state.sim.corridors = 2;
+        state.sim.mesh = "Nominal";
+        state.sim.current = {
+          households: 0,
+          evac: 0,
+          grid: 0,
+          hospital: 0,
+          logistics: 0,
+          air: 0,
+          recovery: 0
+        };
+        state.sim.impactScore = 0;
+        state.sim.visualStrength = 0.22;
+        state.logs = [];
+        state.logPlan = buildLogPlan(selectedRegion(), selectedScenario(), baseline);
+        pushLog("T+00", `Launching ${selectedScenario().name} exercise for ${selectedRegion().name}.`);
+        spawnBurst(12, 1.1);
+      }
+
+      function updateSimulation(dt) {
+        if (state.autoTour) {
+          state.autoTourTimer += dt;
+          const cycle = state.running ? state.sim.duration * 0.9 : 7;
+          if (state.autoTourTimer >= cycle) {
+            state.autoTourTimer = 0;
+            state.selectedRegionIndex = (state.selectedRegionIndex + 1) % regions.length;
+            state.selectedScenarioIndex = (state.selectedScenarioIndex + 1) % scenarios.length;
+            refreshSelectionUI();
+            startSimulation();
+          }
+        }
+
+        if (state.running) {
+          state.sim.elapsed += dt;
+          const progress = clamp(state.sim.elapsed / state.sim.duration, 0, 1);
+          const rise = smoothstep(0, 0.38, progress);
+          const plateau = smoothstep(0.2, 0.78, progress);
+          const settle = smoothstep(0.65, 1, progress);
+          const wave = clamp((rise * 0.78 + plateau * 0.32) * (1 - settle * 0.18), 0, 1);
+
+          const target = state.sim.target;
+          state.sim.current.households = target.households * wave;
+          state.sim.current.evac = target.evac * clamp(rise * 1.06, 0, 1);
+          state.sim.current.grid = target.grid * clamp(rise * 0.92 + plateau * 0.08, 0, 1);
+          state.sim.current.hospital = target.hospital * clamp(rise * 0.85 + plateau * 0.18, 0, 1);
+          state.sim.current.logistics = target.logistics * clamp(rise * 0.74 + plateau * 0.26, 0, 1);
+          state.sim.current.air = target.air * clamp(rise * 0.65 + plateau * 0.42, 0, 1);
+          state.sim.current.recovery = target.recovery * smoothstep(0.18, 1, progress);
+
+          state.sim.impactScore = Math.round(target.impactScore * clamp(rise * 0.84 + plateau * 0.16, 0, 1));
+          state.sim.readiness = lerp(92, target.readiness, easeInOutSine(clamp(progress * 1.02, 0, 1)));
+          state.sim.shelter = lerp(96, target.shelter, clamp(progress * 1.1, 0, 1));
+          state.sim.corridors = progress > 0.36 ? target.corridors : clamp(2 + Math.floor(progress * target.corridors), 2, target.corridors);
+          state.sim.mesh = progress < 0.32 ? "Nominal" : progress < 0.62 ? (target.mesh === "Frayed" ? "Stressed" : target.mesh) : target.mesh;
+          state.sim.visualStrength = lerp(0.22, 1, smoothstep(0, 0.2, progress)) * (1 - settle * 0.15);
+
+          while (state.sim.logCursor < state.logPlan.length && progress >= state.logPlan[state.sim.logCursor].at) {
+            const entry = state.logPlan[state.sim.logCursor];
+            pushLog(entry.tag, entry.text);
+            state.sim.logCursor += 1;
+          }
+
+          if (progress >= 1) {
+            state.running = false;
+            state.previewPulse = true;
+            state.sim.current.recovery = state.sim.target.recovery;
+            pushLog("T+END", "Exercise complete. Review the metrics for recovery planning and corridor scaling.");
+          }
+        } else if (state.previewPulse) {
+          state.sim.visualStrength = lerp(state.sim.visualStrength, 0.34, 0.04);
+          state.sim.current.recovery = lerp(state.sim.current.recovery, state.sim.target.recovery, 0.012);
+        } else {
+          state.sim.visualStrength = lerp(state.sim.visualStrength, 0.14, 0.04);
+        }
+
+        updatePanels();
+      }
+
+      function spawnBurst(multiplier = 8, intensity = 1) {
+        const profile = qualityProfiles[state.quality];
+        let remaining = Math.round(multiplier + profile.particles * 0.08 * intensity);
+        const scenario = selectedScenario();
+        for (let i = 0; i < state.particles.length && remaining > 0; i += 1) {
+          const p = state.particles[i];
+          if (p.active) continue;
+          const angle = Math.random() * TAU;
+          const speed = 30 + Math.random() * 90 * intensity;
+          p.active = true;
+          p.x = 0;
+          p.y = 0;
+          p.vx = Math.cos(angle) * speed;
+          p.vy = Math.sin(angle) * speed * (scenario.id === "wildfire" ? 0.55 : 1);
+          p.ttl = p.life = 0.5 + Math.random() * 1.2;
+          p.size = 1 + Math.random() * 3;
+          p.glow = Math.random();
+          remaining -= 1;
+        }
+      }
+
+      function updateParticles(dt) {
+        if ((state.running || state.previewPulse) && Math.random() < 0.6) {
+          spawnBurst(qualityProfiles[state.quality].particles * 0.015, state.running ? 0.65 : 0.22);
+        }
+        const drag = 0.98;
+        for (let i = 0; i < state.particles.length; i += 1) {
+          const p = state.particles[i];
+          if (!p.active) continue;
+          p.life -= dt;
+          if (p.life <= 0) {
+            p.active = false;
+            continue;
+          }
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= drag;
+          p.vy *= drag;
+        }
+      }
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, qualityProfiles[state.quality].dpr);
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        state.sphere.r = Math.min(rect.width, rect.height) * 0.325;
+        state.sphere.x = rect.width * 0.5;
+        state.sphere.y = rect.height * 0.55;
+        buildStars();
+      }
+
+      function buildStars() {
+        const profile = qualityProfiles[state.quality];
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.max(600, Math.floor(rect.width));
+        const h = Math.max(400, Math.floor(rect.height));
+        const starCanvas = state.starsCanvas;
+        starCanvas.width = w;
+        starCanvas.height = h;
+        const sctx = starCanvas.getContext("2d");
+
+        const bg = sctx.createLinearGradient(0, 0, 0, h);
+        bg.addColorStop(0, "#07101d");
+        bg.addColorStop(0.55, "#07111f");
+        bg.addColorStop(1, "#040914");
+        sctx.fillStyle = bg;
+        sctx.fillRect(0, 0, w, h);
+
+        const hazeA = sctx.createRadialGradient(w * 0.22, h * 0.12, 0, w * 0.22, h * 0.12, w * 0.42);
+        hazeA.addColorStop(0, "rgba(77, 124, 255, 0.18)");
+        hazeA.addColorStop(1, "rgba(77, 124, 255, 0)");
+        sctx.fillStyle = hazeA;
+        sctx.fillRect(0, 0, w, h);
+
+        const hazeB = sctx.createRadialGradient(w * 0.82, h * 0.2, 0, w * 0.82, h * 0.2, w * 0.32);
+        hazeB.addColorStop(0, "rgba(58, 179, 255, 0.12)");
+        hazeB.addColorStop(1, "rgba(58, 179, 255, 0)");
+        sctx.fillStyle = hazeB;
+        sctx.fillRect(0, 0, w, h);
+
+        for (let i = 0; i < profile.stars; i += 1) {
+          const x = Math.random() * w;
+          const y = Math.random() * h;
+          const r = Math.random() * (i % 12 === 0 ? 1.8 : 1.2) + 0.18;
+          const a = 0.3 + Math.random() * 0.7;
+          sctx.fillStyle = `rgba(255,255,255,${a})`;
+          sctx.beginPath();
+          sctx.arc(x, y, r, 0, TAU);
+          sctx.fill();
+        }
+      }
+
+      function project(lat, lon) {
+        const sphere = state.sphere;
+        const phi = lat * RAD;
+        const lambda = (lon - state.viewLon) * RAD;
+        const phi0 = state.viewLat * RAD;
+        const cosPhi = Math.cos(phi);
+        const sinPhi = Math.sin(phi);
+        const cosPhi0 = Math.cos(phi0);
+        const sinPhi0 = Math.sin(phi0);
+        const cosLambda = Math.cos(lambda);
+        const sinLambda = Math.sin(lambda);
+        const x = sphere.r * cosPhi * sinLambda;
+        const y = -sphere.r * (cosPhi0 * sinPhi - sinPhi0 * cosPhi * cosLambda);
+        const z = sinPhi0 * sinPhi + cosPhi0 * cosPhi * cosLambda;
+        return { x: sphere.x + x, y: sphere.y + y, z, visible: z > 0 };
+      }
+
+      function drawBackground(t) {
+        const { width, height } = canvas.getBoundingClientRect();
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(state.starsCanvas, 0, 0, width, height);
+
+        state.twinkles.forEach((star, idx) => {
+          const alpha = 0.2 + 0.6 * (0.5 + 0.5 * Math.sin(t * (0.4 + idx * 0.03) + star.phase));
+          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+          ctx.beginPath();
+          ctx.arc(star.x * width, star.y * height * 0.78, star.r, 0, TAU);
+          ctx.fill();
+        });
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        const glow = ctx.createRadialGradient(width * 0.5, height * 0.55, 0, width * 0.5, height * 0.55, Math.min(width, height) * 0.45);
+        glow.addColorStop(0, "rgba(67, 122, 255, 0.06)");
+        glow.addColorStop(1, "rgba(67, 122, 255, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+
+      function drawSphereBase(t) {
+        const { x, y, r } = state.sphere;
+        ctx.save();
+
+        const atmosphere = ctx.createRadialGradient(x, y, r * 0.72, x, y, r * 1.32);
+        atmosphere.addColorStop(0, "rgba(72, 142, 255, 0)");
+        atmosphere.addColorStop(0.75, "rgba(72, 142, 255, 0.12)");
+        atmosphere.addColorStop(1, "rgba(72, 142, 255, 0)");
+        ctx.fillStyle = atmosphere;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 1.32, 0, TAU);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.closePath();
+        ctx.clip();
+
+        const ocean = ctx.createRadialGradient(x - r * 0.25, y - r * 0.35, r * 0.18, x, y, r * 1.1);
+        ocean.addColorStop(0, "#163d7a");
+        ocean.addColorStop(0.32, "#0d2859");
+        ocean.addColorStop(0.7, "#08173b");
+        ocean.addColorStop(1, "#050c20");
+        ctx.fillStyle = ocean;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+
+        const gloss = ctx.createLinearGradient(x - r, y - r * 0.9, x + r, y + r);
+        gloss.addColorStop(0, "rgba(255,255,255,0.08)");
+        gloss.addColorStop(0.28, "rgba(255,255,255,0.02)");
+        gloss.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = gloss;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+
+        surfaceBands.forEach((band, bandIndex) => {
+          ctx.beginPath();
+          let drawing = false;
+          for (let lon = -180; lon <= 180; lon += qualityProfiles[state.quality].ribbonStep) {
+            const lat = band.base + Math.sin((lon * RAD) * band.freq + band.phase + t * 0.04 * (bandIndex + 1)) * band.amp + Math.sin((lon * RAD) * (band.freq * 0.6) + band.phase * 1.7) * band.amp * 0.35;
+            const p = project(lat, lon);
+            if (p.visible) {
+              if (!drawing) {
+                ctx.moveTo(p.x, p.y);
+                drawing = true;
+              } else {
+                ctx.lineTo(p.x, p.y);
+              }
+            } else {
+              drawing = false;
+            }
+          }
+          ctx.lineWidth = band.width;
+          ctx.strokeStyle = rgba(band.rgb, band.alpha);
+          ctx.lineCap = "round";
+          ctx.stroke();
+        });
+
+        drawGrid(t);
+        drawClouds(t);
+        ctx.restore();
+
+        const rim = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
+        rim.addColorStop(0, "rgba(146, 202, 255, 0.4)");
+        rim.addColorStop(0.25, "rgba(255,255,255,0.15)");
+        rim.addColorStop(1, "rgba(70, 135, 255, 0.08)");
+        ctx.strokeStyle = rim;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.stroke();
+      }
+
+      function drawGrid(t) {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(140, 191, 255, 0.1)";
+        const step = qualityProfiles[state.quality].gridStep;
+
+        for (let lat = -60; lat <= 60; lat += 15) {
+          ctx.beginPath();
+          let drawing = false;
+          for (let lon = -180; lon <= 180; lon += step) {
+            const p = project(lat, lon);
+            if (p.visible) {
+              if (!drawing) {
+                ctx.moveTo(p.x, p.y);
+                drawing = true;
+              } else {
+                ctx.lineTo(p.x, p.y);
+              }
+            } else {
+              drawing = false;
+            }
+          }
+          ctx.stroke();
+        }
+
+        for (let lon = -180; lon < 180; lon += 20) {
+          ctx.beginPath();
+          let drawing = false;
+          for (let lat = -85; lat <= 85; lat += step) {
+            const p = project(lat, lon + Math.sin(t * 0.02 + lon) * 0.15);
+            if (p.visible) {
+              if (!drawing) {
+                ctx.moveTo(p.x, p.y);
+                drawing = true;
+              } else {
+                ctx.lineTo(p.x, p.y);
+              }
+            } else {
+              drawing = false;
+            }
+          }
+          ctx.stroke();
+        }
+      }
+
+      function drawClouds(t) {
+        const { x, y, r } = state.sphere;
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < 4; i += 1) {
+          const lat = -35 + i * 24 + Math.sin(t * 0.12 + i) * 2.4;
+          ctx.beginPath();
+          let drawing = false;
+          for (let lon = -180; lon <= 180; lon += 5) {
+            const wave = Math.sin((lon * RAD) * 3.3 + t * 0.6 + i) * 2.8;
+            const p = project(lat + wave, lon + t * (0.8 + i * 0.1));
+            if (p.visible) {
+              if (!drawing) {
+                ctx.moveTo(p.x, p.y);
+                drawing = true;
+              } else {
+                ctx.lineTo(p.x, p.y);
+              }
+            } else {
+              drawing = false;
+            }
+          }
+          ctx.lineWidth = 6 + i * 2;
+          ctx.strokeStyle = `rgba(255,255,255,${0.04 + i * 0.01})`;
+          ctx.stroke();
+        }
+
+        const highlight = ctx.createRadialGradient(x - r * 0.3, y - r * 0.45, r * 0.08, x - r * 0.3, y - r * 0.45, r * 0.65);
+        highlight.addColorStop(0, "rgba(255,255,255,0.06)");
+        highlight.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = highlight;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        ctx.restore();
+      }
+
+      function drawAidCorridors(t) {
+        const region = selectedRegion();
+        const regionPoint = project(region.lat, region.lon);
+        if (!regionPoint.visible) return;
+
+        const sortedHubs = [...hubs].sort((a, b) => angularDistance(region, a) - angularDistance(region, b));
+        const useHubs = sortedHubs.slice(0, clamp(state.sim.corridors, 2, 3));
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(state.sphere.x, state.sphere.y, state.sphere.r, 0, TAU);
+        ctx.clip();
+
+        useHubs.forEach((hub, idx) => {
+          ctx.beginPath();
+          let drawing = false;
+          for (let i = 0; i <= 42; i += 1) {
+            const p = i / 42;
+            const lat = lerp(hub.lat, region.lat, p) + Math.sin(p * Math.PI) * (4 + idx * 1.6);
+            const lon = lerp(hub.lon, region.lon, p);
+            const point = project(lat, lon);
+            if (point.visible) {
+              if (!drawing) {
+                ctx.moveTo(point.x, point.y);
+                drawing = true;
+              } else {
+                ctx.lineTo(point.x, point.y);
+              }
+            } else {
+              drawing = false;
+            }
+          }
+          ctx.strokeStyle = idx === 0 ? "rgba(142,247,192,0.72)" : "rgba(116,214,255,0.58)";
+          ctx.lineWidth = idx === 0 ? 2.4 : 1.8;
+          ctx.setLineDash([8, 10]);
+          ctx.lineDashOffset = -t * (18 + idx * 7);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          const hubPoint = project(hub.lat, hub.lon);
+          if (hubPoint.visible) {
+            ctx.fillStyle = idx === 0 ? "rgba(142,247,192,0.95)" : "rgba(116,214,255,0.9)";
+            ctx.beginPath();
+            ctx.arc(hubPoint.x, hubPoint.y, 3.2, 0, TAU);
+            ctx.fill();
+          }
+        });
+        ctx.restore();
+      }
+
+      function drawEventEnvelope(t) {
+        const scenario = selectedScenario();
+        const point = project(selectedRegion().lat, selectedRegion().lon);
+        if (!point.visible) return;
+        const strength = state.running || state.previewPulse ? state.sim.visualStrength : 0.12;
+        const maxRadius = state.sphere.r * (0.09 + scenario.base * 0.2);
+        const colors = scenario.colors;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(state.sphere.x, state.sphere.y, state.sphere.r, 0, TAU);
+        ctx.clip();
+        ctx.globalCompositeOperation = "lighter";
+
+        for (let i = 0; i < 4; i += 1) {
+          const cycle = (t * (0.18 + i * 0.03) + i * 0.22) % 1;
+          const radius = maxRadius * (0.25 + cycle * (1.4 + strength * 0.4));
+          const alpha = (1 - cycle) * (0.18 + strength * 0.22);
+          ctx.strokeStyle = rgba(colors.core, alpha);
+          ctx.lineWidth = 2 + (1 - cycle) * 4;
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, radius, 0, TAU);
+          ctx.stroke();
+        }
+
+        const aura = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, maxRadius * 1.18);
+        aura.addColorStop(0, rgba(colors.glow, 0.18 + strength * 0.18));
+        aura.addColorStop(0.35, rgba(colors.core, 0.08 + strength * 0.08));
+        aura.addColorStop(1, rgba(colors.glow, 0));
+        ctx.fillStyle = aura;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, maxRadius * 1.18, 0, TAU);
+        ctx.fill();
+
+        switch (scenario.id) {
+          case "solar":
+            drawSolarSignature(point, t, colors, strength);
+            break;
+          case "meteor":
+            drawMeteorSignature(point, t, colors, strength);
+            break;
+          case "seismic":
+            drawSeismicSignature(point, t, colors, strength);
+            break;
+          case "surge":
+            drawSurgeSignature(point, t, colors, strength);
+            break;
+          case "wildfire":
+            drawWildfireSignature(point, t, colors, strength);
+            break;
+          case "industrial":
+            drawIndustrialSignature(point, t, colors, strength);
+            break;
+        }
+
+        drawParticles(point, colors);
+        ctx.restore();
+      }
+
+      function drawSolarSignature(point, t, colors, strength) {
+        const bandCount = qualityProfiles[state.quality].ribbonStep < 7 ? 7 : 5;
+        for (let i = 0; i < bandCount; i += 1) {
+          ctx.beginPath();
+          const spread = 16 + i * 8;
+          for (let x = -120; x <= 120; x += 8) {
+            const y = Math.sin(x * 0.05 + t * 2 + i * 0.6) * (4 + i * 1.3);
+            const px = point.x + x;
+            const py = point.y - spread + y;
+            if (x === -120) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.strokeStyle = rgba(i % 2 === 0 ? colors.core : colors.glow, 0.08 + strength * 0.08);
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        }
+      }
+
+      function drawMeteorSignature(point, t, colors, strength) {
+        for (let i = 0; i < 10; i += 1) {
+          const angle = t * 1.6 + i * (TAU / 10);
+          const len = 20 + i * 4 + strength * 30;
+          ctx.strokeStyle = rgba(i % 2 ? colors.glow : colors.core, 0.12 + strength * 0.12);
+          ctx.lineWidth = i % 3 === 0 ? 2.6 : 1.5;
+          ctx.beginPath();
+          ctx.moveTo(point.x + Math.cos(angle) * 8, point.y + Math.sin(angle) * 8);
+          ctx.lineTo(point.x + Math.cos(angle) * len, point.y + Math.sin(angle) * len);
+          ctx.stroke();
+        }
+      }
+
+      function drawSeismicSignature(point, t, colors, strength) {
+        for (let i = 0; i < 6; i += 1) {
+          const angle = i * (TAU / 6) + Math.sin(t * 0.8 + i) * 0.15;
+          ctx.beginPath();
+          ctx.moveTo(point.x, point.y);
+          let cx = point.x;
+          let cy = point.y;
+          for (let s = 0; s < 7; s += 1) {
+            cx += Math.cos(angle) * (8 + s * 5) + Math.sin(t * 3 + s + i) * 2.5;
+            cy += Math.sin(angle) * (8 + s * 5) + (s % 2 === 0 ? -3 : 3);
+            ctx.lineTo(cx, cy);
+          }
+          ctx.strokeStyle = rgba(i % 2 ? colors.core : colors.glow, 0.12 + strength * 0.12);
+          ctx.lineWidth = 1.8;
+          ctx.stroke();
+        }
+      }
+
+      function drawSurgeSignature(point, t, colors, strength) {
+        for (let i = 0; i < 4; i += 1) {
+          ctx.beginPath();
+          for (let x = -100; x <= 100; x += 6) {
+            const y = Math.sin(x * 0.07 + t * 3 + i * 0.9) * (6 + i * 1.7);
+            const px = point.x + x;
+            const py = point.y + y + (i - 1.5) * 16;
+            if (x === -100) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.strokeStyle = rgba(i % 2 ? colors.glow : colors.core, 0.12 + strength * 0.12);
+          ctx.lineWidth = 2.4;
+          ctx.stroke();
+        }
+      }
+
+      function drawWildfireSignature(point, t, colors, strength) {
+        for (let i = 0; i < 9; i += 1) {
+          const drift = (i - 4) * 8;
+          const height = 30 + i * 5 + Math.sin(t * 2.8 + i) * 10;
+          const plume = ctx.createLinearGradient(point.x + drift, point.y, point.x + drift, point.y - height);
+          plume.addColorStop(0, rgba(colors.core, 0.15 + strength * 0.12));
+          plume.addColorStop(1, rgba(colors.glow, 0));
+          ctx.strokeStyle = plume;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(point.x + drift, point.y + 6);
+          ctx.quadraticCurveTo(point.x + drift + Math.sin(t * 2 + i) * 10, point.y - height * 0.55, point.x + drift + Math.cos(t * 1.7 + i) * 18, point.y - height);
+          ctx.stroke();
+        }
+      }
+
+      function drawIndustrialSignature(point, t, colors, strength) {
+        const sides = 6;
+        for (let ring = 0; ring < 3; ring += 1) {
+          const radius = 18 + ring * 16 + Math.sin(t * 1.6 + ring) * 3;
+          ctx.beginPath();
+          for (let i = 0; i <= sides; i += 1) {
+            const angle = (i / sides) * TAU + t * 0.18;
+            const px = point.x + Math.cos(angle) * radius;
+            const py = point.y + Math.sin(angle) * radius;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.strokeStyle = rgba(ring % 2 ? colors.glow : colors.core, 0.12 + strength * 0.14);
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+
+      function drawParticles(center, colors) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < state.particles.length; i += 1) {
+          const p = state.particles[i];
+          if (!p.active) continue;
+          const alpha = clamp(p.life / p.ttl, 0, 1);
+          const x = center.x + p.x;
+          const y = center.y + p.y;
+          const grad = ctx.createRadialGradient(x, y, 0, x, y, p.size * 4.2);
+          grad.addColorStop(0, rgba(colors.flare, alpha * 0.9));
+          grad.addColorStop(1, rgba(colors.core, 0));
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(x, y, p.size * 4.2, 0, TAU);
+          ctx.fill();
+          ctx.fillStyle = rgba(colors.flare, alpha * 0.85);
+          ctx.beginPath();
+          ctx.arc(x, y, p.size, 0, TAU);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawMarkers(t) {
+        state.markerScreen = [];
+        regions.forEach((region, index) => {
+          const p = project(region.lat, region.lon);
+          if (!p.visible) return;
+          state.markerScreen.push({ index, x: p.x, y: p.y, depth: p.z });
+          const selected = index === state.selectedRegionIndex;
+          const radius = selected ? 5.5 + Math.sin(t * 2.5) * 1.2 : 4.1;
+
+          const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 4.5);
+          glow.addColorStop(0, selected ? "rgba(255,255,255,0.95)" : "rgba(160,235,255,0.7)");
+          glow.addColorStop(0.3, selected ? "rgba(116,214,255,0.6)" : "rgba(116,214,255,0.34)");
+          glow.addColorStop(1, "rgba(116,214,255,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, radius * 4.5, 0, TAU);
+          ctx.fill();
+
+          ctx.fillStyle = selected ? "#ffffff" : "#96edff";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, radius, 0, TAU);
+          ctx.fill();
+
+          ctx.fillStyle = selected ? "rgba(255,255,255,0.94)" : "rgba(220,238,255,0.72)";
+          ctx.font = selected ? "600 13px Inter, system-ui, sans-serif" : "500 12px Inter, system-ui, sans-serif";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "rgba(0,0,0,0.5)";
+          ctx.shadowBlur = 12;
+          ctx.fillText(region.name, p.x + 12, p.y + (selected ? -14 : -10));
+          ctx.shadowBlur = 0;
+        });
+      }
+
+      function drawForeground() {
+        const { width, height } = canvas.getBoundingClientRect();
+        const vignette = ctx.createLinearGradient(0, 0, 0, height);
+        vignette.addColorStop(0, "rgba(255,255,255,0.02)");
+        vignette.addColorStop(0.65, "rgba(255,255,255,0)");
+        vignette.addColorStop(1, "rgba(0,0,0,0.22)");
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.03)";
+        ctx.lineWidth = 1;
+        for (let y = 0; y < height; y += 4) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(width, y + 0.5);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function updateView(dt) {
+        const targetLon = selectedRegion().lon;
+        const targetLat = clamp(selectedRegion().lat * 0.38, -28, 28);
+        state.viewLon = lerp(state.viewLon, targetLon, 1 - Math.pow(0.0015, dt));
+        state.viewLat = lerp(state.viewLat, targetLat, 1 - Math.pow(0.0015, dt));
+        state.time += dt;
+      }
+
+      function render(t) {
+        drawBackground(t);
+        drawSphereBase(t);
+        drawAidCorridors(t);
+        drawEventEnvelope(t);
+        drawMarkers(t);
+        drawForeground();
+      }
+
+      function tick(ts) {
+        const time = ts / 1000;
+        const dt = Math.min(0.04, state.lastTs ? time - state.lastTs : 0.016);
+        state.lastTs = time;
+        updateView(dt);
+        updateSimulation(dt);
+        updateParticles(dt);
+        render(time);
+        requestAnimationFrame(tick);
+      }
+
+      function setQuality(nextQuality) {
+        state.quality = nextQuality;
+        refreshSelectionUI();
+        resize();
+      }
+
+      function wireEvents() {
+        document.getElementById("runBtn").addEventListener("click", startSimulation);
+        document.getElementById("resetBtn").addEventListener("click", () => resetToBaseline(true));
+        document.getElementById("pulseBtn").addEventListener("click", () => {
+          state.running = false;
+          state.previewPulse = true;
+          state.logs = [];
+          pushLog("Preview", `Previewing ${selectedScenario().name} visual signature in ${selectedRegion().name}.`);
+          spawnBurst(16, 0.85);
+        });
+        document.getElementById("tourBtn").addEventListener("click", () => {
+          state.autoTour = !state.autoTour;
+          state.autoTourTimer = 0;
+          document.getElementById("tourBtn").textContent = state.autoTour ? "Stop Tour" : "Auto Tour";
+          if (state.autoTour) startSimulation();
+        });
+        Array.from(document.querySelectorAll("#qualityRow button")).forEach((button) => {
+          button.addEventListener("click", () => setQuality(button.dataset.quality));
+        });
+
+        canvas.addEventListener("click", (event) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          let best = null;
+          state.markerScreen.forEach((marker) => {
+            const dx = marker.x - x;
+            const dy = marker.y - y;
+            const d = Math.hypot(dx, dy);
+            if (d < 22 && (!best || d < best.d)) best = { index: marker.index, d };
+          });
+          if (best) {
+            state.selectedRegionIndex = best.index;
+            state.autoTour = false;
+            document.getElementById("tourBtn").textContent = "Auto Tour";
+            refreshSelectionUI();
+            resetToBaseline(false);
+          }
+        });
+
+        window.addEventListener("resize", resize);
+      }
+
+      buildMetricCards();
+      refreshSelectionUI();
+      wireEvents();
+      resize();
+      resetToBaseline(true);
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
