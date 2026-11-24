@@ -1,0 +1,4950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Pulse DX</title>
+  <style>
+    :root {
+      --bg: #070912;
+      --panel: rgba(10, 14, 28, 0.82);
+      --panel-strong: rgba(8, 11, 24, 0.94);
+      --line: rgba(121, 170, 255, 0.25);
+      --text: #ecf4ff;
+      --muted: #9ab0cf;
+      --accent: #73f2ff;
+      --accent-2: #c089ff;
+      --danger: #ff5d94;
+      --good: #9cffc5;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(66, 96, 190, 0.28), transparent 38%),
+        linear-gradient(180deg, #060814 0%, #03050d 100%);
+      color: var(--text);
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    #gameShell {
+      position: relative;
+      width: min(100vw - 36px, calc((100vh - 36px) * 16 / 9));
+      aspect-ratio: 16 / 9;
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #03050d;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      image-rendering: optimizeQuality;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #menuOverlay,
+    #trainingOverlay {
+      pointer-events: auto;
+      background:
+        linear-gradient(180deg, rgba(4, 8, 18, 0.52), rgba(4, 6, 12, 0.82)),
+        radial-gradient(circle at top left, rgba(115, 242, 255, 0.1), transparent 32%),
+        radial-gradient(circle at top right, rgba(192, 137, 255, 0.12), transparent 30%);
+      padding: 20px;
+      gap: 18px;
+    }
+
+    .menu-column {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    #menuLeft,
+    #trainingLeft {
+      width: 36%;
+    }
+
+    #menuRight,
+    #trainingRight {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 18px;
+      backdrop-filter: blur(14px);
+    }
+
+    .panel.strong {
+      background: var(--panel-strong);
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    .title {
+      font-size: clamp(30px, 4vw, 56px);
+      line-height: 1;
+      letter-spacing: 0.04em;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .pill-row, .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill, .action, .mini-btn, .touch-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .action {
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: linear-gradient(180deg, rgba(115, 242, 255, 0.18), rgba(115, 242, 255, 0.08));
+      border-color: rgba(115, 242, 255, 0.4);
+    }
+
+    .action.secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .pill.active,
+    .mini-btn.active,
+    .action.active {
+      background: linear-gradient(180deg, rgba(192, 137, 255, 0.28), rgba(115, 242, 255, 0.16));
+      border-color: rgba(192, 137, 255, 0.58);
+    }
+
+    .pill:hover,
+    .action:hover,
+    .mini-btn:hover,
+    .touch-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .meta-card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .meta-card small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+    }
+
+    .meta-card strong {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    #levelGrid,
+    #trainingGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      max-height: 100%;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .level-card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .level-card:hover { transform: translateY(-2px); }
+    .level-card.selected {
+      background: linear-gradient(180deg, rgba(115, 242, 255, 0.12), rgba(192, 137, 255, 0.12));
+      border-color: rgba(115, 242, 255, 0.46);
+      box-shadow: 0 0 0 1px rgba(115, 242, 255, 0.18) inset;
+    }
+
+    .level-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .badge {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      white-space: nowrap;
+    }
+
+    .level-desc {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+      min-height: 60px;
+    }
+
+    .record-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .level-progress {
+      margin-top: 14px;
+    }
+
+    .level-progress-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .level-progress-track {
+      position: relative;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .level-progress-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(115, 242, 255, 0.82), rgba(192, 137, 255, 0.92));
+      box-shadow: 0 0 18px rgba(115, 242, 255, 0.24);
+    }
+
+    .level-progress-marker {
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 3px;
+      border-radius: 999px;
+      background: #ffffff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.55);
+      transform: translateX(-50%);
+    }
+
+    #hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    #hudTop {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+    }
+
+    .hud-box {
+      background: rgba(3, 8, 18, 0.48);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 14px;
+      padding: 12px 14px;
+      backdrop-filter: blur(10px);
+      min-width: 180px;
+      pointer-events: auto;
+    }
+
+    .hud-title {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .hud-value {
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .hud-sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    #progressWrap {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+
+    #progressFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(115, 242, 255, 0.92), rgba(192, 137, 255, 0.92));
+      box-shadow: 0 0 22px rgba(115, 242, 255, 0.55);
+      transition: width 140ms linear;
+    }
+
+    #resultOverlay,
+    #pauseOverlay {
+      pointer-events: auto;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 7, 14, 0.72);
+      backdrop-filter: blur(10px);
+    }
+
+    .center-card {
+      width: min(560px, calc(100% - 30px));
+      padding: 22px;
+      border-radius: 20px;
+      background: rgba(7, 12, 24, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow);
+    }
+
+    .result-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .result-metric {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .result-metric small {
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .result-metric strong {
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    #touchControls {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .touch-cluster {
+      position: absolute;
+      bottom: 32px;
+      display: flex;
+      gap: 16px;
+      pointer-events: auto;
+    }
+
+    #touchLeft {
+      left: 24px;
+    }
+
+    #touchRight {
+      right: 24px;
+    }
+
+    .touch-btn {
+      width: 118px;
+      height: 118px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      user-select: none;
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+    }
+
+    .touch-btn:active,
+    .touch-btn.active {
+      background: rgba(115, 242, 255, 0.2);
+      border-color: rgba(115, 242, 255, 0.55);
+    }
+
+    .info-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .info-list span {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 12px;
+    }
+
+
+    #homeOverlay {
+      pointer-events: auto;
+      padding: 24px;
+      background:
+        linear-gradient(180deg, rgba(3, 6, 16, 0.22), rgba(4, 7, 14, 0.72)),
+        radial-gradient(circle at 18% 18%, rgba(115, 242, 255, 0.14), transparent 30%),
+        radial-gradient(circle at 82% 12%, rgba(192, 137, 255, 0.16), transparent 32%),
+        radial-gradient(circle at 50% 100%, rgba(115, 242, 255, 0.08), transparent 45%);
+    }
+
+    .home-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+      gap: 20px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .home-left,
+    .home-right {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .hero-panel {
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(7, 12, 25, 0.92), rgba(5, 8, 18, 0.86));
+    }
+
+    .hero-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(115, 242, 255, 0.12), transparent 38%),
+        radial-gradient(circle at bottom left, rgba(192, 137, 255, 0.12), transparent 32%);
+      pointer-events: none;
+    }
+
+    .hero-panel > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-eyebrow,
+    .menu-eyebrow {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0 16px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .hero-stat,
+    .spotlight-metric {
+      padding: 14px 15px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .hero-stat small,
+    .spotlight-metric small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .hero-stat strong,
+    .spotlight-metric strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .hero-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .spotlight-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .spotlight-accent {
+      height: 5px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 20px rgba(115, 242, 255, 0.35);
+    }
+
+    .spotlight-progress {
+      margin-top: 18px;
+    }
+
+    .spotlight-progress-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .spotlight-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .menu-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .menu-panel-title {
+      font-size: 28px;
+      margin: 0 0 6px;
+    }
+
+    .browser-meta {
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 760px;
+    }
+
+    .home-mini-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .home-mini-item {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .home-mini-item strong {
+      color: var(--text);
+    }
+
+    .level-card {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03)),
+        radial-gradient(circle at top right, var(--card-glow, rgba(115, 242, 255, 0.12)), transparent 44%);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .level-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--card-accent, var(--accent)), var(--card-accent2, var(--accent-2)));
+      opacity: 0.92;
+    }
+
+    .level-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22);
+    }
+
+    .level-card.selected {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)),
+        radial-gradient(circle at top right, var(--card-glow, rgba(115, 242, 255, 0.16)), transparent 50%);
+      border-color: rgba(115, 242, 255, 0.46);
+      box-shadow:
+        0 0 0 1px rgba(115, 242, 255, 0.18) inset,
+        0 18px 32px rgba(0, 0, 0, 0.26);
+    }
+
+    .theme-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+
+    @media (max-width: 1150px) {
+      #homeOverlay,
+      #menuOverlay,
+      #trainingOverlay {
+        overflow: auto;
+      }
+      .home-shell,
+      #menuOverlay,
+      #trainingOverlay {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+      }
+      #menuLeft,
+      #trainingLeft {
+        width: 100%;
+      }
+      .hero-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 0; }
+      #gameShell {
+        width: 100vw;
+        height: 100vh;
+        aspect-ratio: auto;
+        border-radius: 0;
+      }
+      #homeOverlay,
+      #menuOverlay,
+      #trainingOverlay {
+        padding: 16px;
+      }
+      .hero-grid,
+      .spotlight-grid,
+      .meta-grid,
+      .result-metrics {
+        grid-template-columns: 1fr;
+      }
+      #levelGrid,
+      #trainingGrid {
+        grid-template-columns: 1fr;
+      }
+      .touch-btn {
+        width: 90px;
+        height: 90px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameShell">
+    <canvas id="game" width="1600" height="900" aria-label="Neon Pulse game canvas"></canvas>
+
+    <div id="homeOverlay" class="overlay">
+      <div class="home-shell">
+        <div class="home-left">
+          <div class="panel strong hero-panel">
+            <div class="hero-eyebrow">Original rhythm platformer</div>
+            <div class="title">NEON PULSE DX</div>
+            <div class="subtitle">A cleaner front-end for your browser runner: browse stages, keep progress, jump into fast one-button sections with Cube, Ship, Ball, UFO, Robot, and Wave forms, and drill each form in a separate training menu.</div>
+            <div class="hero-actions">
+              <button id="homePlayBtn" class="action">Play selected level</button>
+              <button id="homeBrowseBtn" class="action secondary">Level browser</button>
+              <button id="homePracticeBtn" class="action secondary">Practice mode: Off</button>
+            </div>
+            <div class="hero-grid">
+              <div class="hero-stat">
+                <small>Selected stage</small>
+                <strong id="homeSelectedStat">Pulse Initiation</strong>
+              </div>
+              <div class="hero-stat">
+                <small>Modifier</small>
+                <strong id="homeModifierStat">Standard</strong>
+              </div>
+              <div class="hero-stat">
+                <small>Total clears</small>
+                <strong id="homeClearsStat">0</strong>
+              </div>
+              <div class="hero-stat">
+                <small>Coins found</small>
+                <strong id="homeCoinsStat">0 / 0</strong>
+              </div>
+            </div>
+            <div class="hero-chip-row">
+              <span class="hero-chip">10 campaign levels</span>
+              <span class="hero-chip">6 endless training modes</span>
+              <span class="hero-chip">Cube • Ship • Ball • UFO • Robot • Wave</span>
+              <span class="hero-chip">Practice checkpoints</span>
+              <span class="hero-chip">Progress memory</span>
+            </div>
+            <div class="button-row" style="margin-top: 14px;">
+              <button id="homeTrainingBtn" class="pill">Training menu</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="menu-eyebrow">Controls</div>
+            <h3 style="font-size: 24px; margin-bottom: 10px;">Jump into a run fast</h3>
+            <div class="info-list" style="margin-top:0;">
+              <span><strong>Primary:</strong> Space, W, ↑, left click, or the Jump touch button. Tap to jump, hop, flip, or hold to fly depending on the form.</span>
+              <span><strong>Burst:</strong> E, Shift, X, right click, or the Burst touch button when a cyan burst crystal appears.</span>
+              <span><strong>Menu flow:</strong> Enter starts the selected stage. Escape returns here from a run, and from the level browser it jumps back to this main menu.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-right">
+          <div id="homeSpotlight" class="panel strong spotlight-card">
+            <div id="homeStageAccent" class="spotlight-accent"></div>
+            <div class="menu-eyebrow">Selected stage spotlight</div>
+            <h2 id="homeLevelName" class="menu-panel-title">Pulse Initiation</h2>
+            <p id="homeLevelDesc" class="browser-meta">The opener now mixes a real ramp climb, a roomy Ship reef, and a readable Ball chicane so the first stage teaches movement variety instead of only flat runs.</p>
+            <div class="button-row" style="margin-top: 14px; align-items:center;">
+              <div id="homeDifficultyTag" class="badge">Easy</div>
+              <div id="homeModeSummary" class="hero-chip">Cube • Ship • Ball</div>
+            </div>
+            <div class="spotlight-progress">
+              <div class="spotlight-progress-row">
+                <span id="homeLastReach">Last attempt —</span>
+                <span id="homeBestReach">Best reach 0%</span>
+              </div>
+              <div class="level-progress-track">
+                <div id="homeProgressFill" class="level-progress-fill" style="width:0%"></div>
+                <div id="homeProgressMarker" class="level-progress-marker" style="left:0%; opacity:0;"></div>
+              </div>
+            </div>
+            <div class="spotlight-grid">
+              <div class="spotlight-metric">
+                <small>Best distance</small>
+                <strong id="homeBestTime">—</strong>
+              </div>
+              <div class="spotlight-metric">
+                <small>Coins</small>
+                <strong id="homeBestCoins">0 / 3</strong>
+              </div>
+              <div class="spotlight-metric">
+                <small>Best coins</small>
+                <strong id="homeBestDeaths">—</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="menu-eyebrow">Fresh in this build</div>
+            <h3 style="font-size: 24px; margin-bottom: 10px;">Better presentation, better Prism</h3>
+            <div class="home-mini-list">
+              <div class="home-mini-item"><strong>Main menu:</strong> the level browser is now a second screen, with a dedicated front page and an auto-scrolling stage preview behind it.</div>
+              <div class="home-mini-item"><strong>Cleaner cards:</strong> level tiles now pull colors from each stage theme so the menu looks less flat and it is easier to tell stages apart at a glance.</div>
+              <div class="home-mini-item"><strong>Ball pass updated:</strong> Ball routes now use wider lanes, softer physics, and a more forgiving contact window so the post-fix sections stay fair.</div>
+              <div class="home-mini-item"><strong>Training menu:</strong> every form now has its own focused drill stage so you can warm up Cube, Ship, Ball, UFO, Robot, or Wave without replaying the campaign.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="menuOverlay" class="overlay hidden">
+      <div id="menuLeft" class="menu-column">
+        <div class="panel strong">
+          <div class="title">RUN SETUP</div>
+          <div class="subtitle">An original precision runner with classic-style mode portals. Ten handcrafted stages, Cube/Ship/Ball/UFO/Robot/Wave forms, visible finish gates, menu progress tracking, practice checkpoints, local records, and reactive neon visuals.</div>
+          <div class="button-row" style="margin-bottom: 14px;">
+            <button id="playSelectedBtn" class="action">Play selected level</button>
+            <button id="resetSaveBtn" class="action secondary">Reset records</button>
+          </div>
+          <h3 style="margin-bottom: 10px;">Modifiers</h3>
+          <div id="difficultyRow" class="pill-row" style="margin-bottom: 12px;"></div>
+          <div class="pill-row">
+            <button id="practiceToggle" class="pill">Practice mode: Off</button>
+            <button id="muteToggle" class="pill">Audio: On</button>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-card">
+              <small>Total clears</small>
+              <strong id="totalClearsStat">0</strong>
+            </div>
+            <div class="meta-card">
+              <small>Coins found</small>
+              <strong id="bestShardStat">0 / 3</strong>
+            </div>
+            <div class="meta-card">
+              <small>Current level</small>
+              <strong id="currentLevelStat">Pulse Initiation</strong>
+            </div>
+            <div class="meta-card">
+              <small>Modifier</small>
+              <strong id="currentDiffStat">Standard</strong>
+            </div>
+          </div>
+          <div class="info-list">
+            <span><strong>Primary:</strong> Space, W, ↑, left click, or the Jump touch button. Tap to jump, hop, flip, or hold to fly depending on the form.</span>
+            <span><strong>Burst:</strong> E, Shift, X, right click, or the Burst touch button when a cyan burst crystal appears.</span>
+            <span><strong>Modes:</strong> Cube, Ship, Ball, UFO, Robot, Wave plus gravity and speed portals.</span>
+          </div>
+          <div class="footer-note">Tip: Most sections use a single main input. Watch the tall portal labels, collect hidden coins, and use practice mode to learn longer routes.</div>
+        </div>
+      </div>
+      <div id="menuRight" class="menu-column">
+        <div class="panel strong" style="display:flex; flex-direction:column; min-height:0; flex:1;">
+          <div class="menu-toolbar">
+            <div>
+              <div class="menu-eyebrow">Level Browser</div>
+              <h2 class="menu-panel-title">Pick a stage</h2>
+              <p id="browserSelectedInfo" class="browser-meta">Selected: Pulse Initiation • Easy • Cube • Ship • Ball</p>
+            </div>
+            <div class="button-row" style="align-items:center;">
+              <button id="browserBackBtn" class="action secondary">Back</button>
+              <div class="badge" id="selectedDifficultyBadge">Modifier: Standard</div>
+            </div>
+          </div>
+          <div id="levelGrid"></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="trainingOverlay" class="overlay hidden">
+      <div id="trainingLeft" class="menu-column">
+        <div class="panel strong">
+          <div class="title">TRAINING</div>
+          <div class="subtitle">Switch out of the campaign and drill one form at a time. Each route is now endless, procedurally generated, safer, and built around a single mode so you can train without full-campaign pressure.</div>
+          <div class="button-row" style="margin-bottom: 14px;">
+            <button id="playTrainingBtn" class="action">Play endless training</button>
+            <button id="trainingBackBtn" class="action secondary">Back</button>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-card">
+              <small>Selected mode</small>
+              <strong id="trainingModeStat">Cube</strong>
+            </div>
+            <div class="meta-card">
+              <small>Best distance</small>
+              <strong id="trainingBestTimeStat">—</strong>
+            </div>
+            <div class="meta-card">
+              <small>Best time</small>
+              <strong id="trainingClearStat">0</strong>
+            </div>
+            <div class="meta-card">
+              <small>Best coins</small>
+              <strong id="trainingBestDeathsStat">—</strong>
+            </div>
+          </div>
+          <div class="info-list">
+            <span><strong>Focus:</strong> one form per route, with endless procedural chunks that reshuffle every run so the drill stays fresh.</span>
+            <span><strong>Practice friendly:</strong> checkpoint mode still works here, so you can learn one generated section without losing the whole run.</span>
+            <span><strong>Quick launch:</strong> press Enter to start the selected endless drill, or double-click a card on the right.</span>
+          </div>
+          <div class="footer-note" id="trainingDesc">Cube Foundations now runs as an endless procedural cube drill with fresh stair, pad, and orb sections every run.</div>
+        </div>
+      </div>
+      <div id="trainingRight" class="menu-column">
+        <div class="panel strong" style="display:flex; flex-direction:column; min-height:0; flex:1;">
+          <div class="menu-toolbar">
+            <div>
+              <div class="menu-eyebrow">Training</div>
+              <h2 class="menu-panel-title">Pick an endless form drill</h2>
+              <p id="trainingSelectedInfo" class="browser-meta">Selected: Cube Foundations • Endless training • Cube</p>
+            </div>
+            <div class="button-row" style="align-items:center;">
+              <button id="trainingToolbarBackBtn" class="action secondary">Back</button>
+              <div class="badge" id="trainingDifficultyBadge">Modifier: Standard</div>
+            </div>
+          </div>
+          <div id="trainingGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hud" class="hidden">      <div id="hudTop">
+        <div class="hud-box">
+          <div class="hud-title">Stage</div>
+          <div id="hudLevelName" class="hud-value">Pulse Initiation</div>
+          <div id="hudLevelSub" class="hud-sub">Easy • 0 deaths • 0/3 coins</div>
+        </div>
+        <div class="hud-box">
+          <div class="hud-title">Run Data</div>
+          <div id="hudRunData" class="hud-value">00:00.00</div>
+          <div id="hudRunSub" class="hud-sub">Cube • No burst • 0%</div>
+        </div>
+        <div class="hud-box" style="display:flex; gap:10px; align-items:flex-start; justify-content:flex-end; min-width:0;">
+          <div style="flex:1; min-width:0;">
+            <div class="hud-title">Mode</div>
+            <div id="hudModeValue" class="hud-value">Standard</div>
+            <div id="hudModeSub" class="hud-sub">Cube • normal gravity</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button id="pauseBtn" class="mini-btn">Pause</button>
+            <button id="menuBtn" class="mini-btn">Menu</button>
+          </div>
+        </div>
+      </div>
+      <div id="progressWrap"><div id="progressFill"></div></div>
+    </div>
+
+    <div id="pauseOverlay" class="overlay hidden">
+      <div class="center-card">
+        <h2 style="font-size: 34px; margin-bottom: 8px;">Paused</h2>
+        <p style="color: var(--muted); line-height: 1.45; margin-bottom: 18px;">Catch your breath, then jump back into the rhythm.</p>
+        <div class="button-row">
+          <button id="resumeBtn" class="action">Resume</button>
+          <button id="restartBtn" class="action secondary">Restart level</button>
+          <button id="pauseMenuBtn" class="action secondary">Return to menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="resultOverlay" class="overlay hidden">
+      <div class="center-card">
+        <div class="badge" id="resultBadge">Clear</div>
+        <h2 id="resultTitle" style="font-size: 34px; margin: 12px 0 8px;">Stage Cleared</h2>
+        <p id="resultText" style="color: var(--muted); line-height: 1.45;">You survived the circuit.</p>
+        <div class="result-metrics">
+          <div class="result-metric">
+            <small>Time</small>
+            <strong id="resultTime">00:00.00</strong>
+          </div>
+          <div class="result-metric">
+            <small>Deaths</small>
+            <strong id="resultDeaths">0</strong>
+          </div>
+          <div class="result-metric">
+            <small>Coins</small>
+            <strong id="resultShards">0 / 3</strong>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="nextLevelBtn" class="action">Next level</button>
+          <button id="replayBtn" class="action secondary">Replay</button>
+          <button id="resultMenuBtn" class="action secondary">Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="touchControls" class="hidden">
+      <div id="touchLeft" class="touch-cluster">
+        <button id="jumpTouchBtn" class="touch-btn">Jump</button>
+      </div>
+      <div id="touchRight" class="touch-cluster">
+        <button id="dashTouchBtn" class="touch-btn">Burst</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const GAME_W = 1600;
+      const GAME_H = 900;
+      const FLOOR_Y = 760;
+      const ROOF_BOTTOM = 140;
+      const PLAYER_BASE_SIZE = 40;
+      const FIXED_DT = 1 / 120;
+      const SAVE_KEY = 'neon_pulse_save_v4';
+
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+
+      const els = {
+        homeOverlay: document.getElementById('homeOverlay'),
+        menuOverlay: document.getElementById('menuOverlay'),
+        trainingOverlay: document.getElementById('trainingOverlay'),
+        homePlayBtn: document.getElementById('homePlayBtn'),
+        homeBrowseBtn: document.getElementById('homeBrowseBtn'),
+        homePracticeBtn: document.getElementById('homePracticeBtn'),
+        homeTrainingBtn: document.getElementById('homeTrainingBtn'),
+        homeSelectedStat: document.getElementById('homeSelectedStat'),
+        homeModifierStat: document.getElementById('homeModifierStat'),
+        homeClearsStat: document.getElementById('homeClearsStat'),
+        homeCoinsStat: document.getElementById('homeCoinsStat'),
+        homeSpotlight: document.getElementById('homeSpotlight'),
+        homeStageAccent: document.getElementById('homeStageAccent'),
+        homeLevelName: document.getElementById('homeLevelName'),
+        homeLevelDesc: document.getElementById('homeLevelDesc'),
+        homeDifficultyTag: document.getElementById('homeDifficultyTag'),
+        homeModeSummary: document.getElementById('homeModeSummary'),
+        homeBestReach: document.getElementById('homeBestReach'),
+        homeLastReach: document.getElementById('homeLastReach'),
+        homeProgressFill: document.getElementById('homeProgressFill'),
+        homeProgressMarker: document.getElementById('homeProgressMarker'),
+        homeBestTime: document.getElementById('homeBestTime'),
+        homeBestCoins: document.getElementById('homeBestCoins'),
+        homeBestDeaths: document.getElementById('homeBestDeaths'),
+        levelGrid: document.getElementById('levelGrid'),
+        browserBackBtn: document.getElementById('browserBackBtn'),
+        browserSelectedInfo: document.getElementById('browserSelectedInfo'),
+        trainingGrid: document.getElementById('trainingGrid'),
+        playTrainingBtn: document.getElementById('playTrainingBtn'),
+        trainingBackBtn: document.getElementById('trainingBackBtn'),
+        trainingToolbarBackBtn: document.getElementById('trainingToolbarBackBtn'),
+        trainingSelectedInfo: document.getElementById('trainingSelectedInfo'),
+        trainingDifficultyBadge: document.getElementById('trainingDifficultyBadge'),
+        trainingModeStat: document.getElementById('trainingModeStat'),
+        trainingBestTimeStat: document.getElementById('trainingBestTimeStat'),
+        trainingClearStat: document.getElementById('trainingClearStat'),
+        trainingBestDeathsStat: document.getElementById('trainingBestDeathsStat'),
+        trainingDesc: document.getElementById('trainingDesc'),
+        playSelectedBtn: document.getElementById('playSelectedBtn'),
+        resetSaveBtn: document.getElementById('resetSaveBtn'),
+        practiceToggle: document.getElementById('practiceToggle'),
+        muteToggle: document.getElementById('muteToggle'),
+        difficultyRow: document.getElementById('difficultyRow'),
+        totalClearsStat: document.getElementById('totalClearsStat'),
+        bestShardStat: document.getElementById('bestShardStat'),
+        currentLevelStat: document.getElementById('currentLevelStat'),
+        currentDiffStat: document.getElementById('currentDiffStat'),
+        selectedDifficultyBadge: document.getElementById('selectedDifficultyBadge'),
+        hud: document.getElementById('hud'),
+        hudLevelName: document.getElementById('hudLevelName'),
+        hudLevelSub: document.getElementById('hudLevelSub'),
+        hudRunData: document.getElementById('hudRunData'),
+        hudRunSub: document.getElementById('hudRunSub'),
+        hudModeValue: document.getElementById('hudModeValue'),
+        hudModeSub: document.getElementById('hudModeSub'),
+        progressFill: document.getElementById('progressFill'),
+        pauseBtn: document.getElementById('pauseBtn'),
+        menuBtn: document.getElementById('menuBtn'),
+        pauseOverlay: document.getElementById('pauseOverlay'),
+        resumeBtn: document.getElementById('resumeBtn'),
+        restartBtn: document.getElementById('restartBtn'),
+        pauseMenuBtn: document.getElementById('pauseMenuBtn'),
+        resultOverlay: document.getElementById('resultOverlay'),
+        resultBadge: document.getElementById('resultBadge'),
+        resultTitle: document.getElementById('resultTitle'),
+        resultText: document.getElementById('resultText'),
+        resultTime: document.getElementById('resultTime'),
+        resultDeaths: document.getElementById('resultDeaths'),
+        resultShards: document.getElementById('resultShards'),
+        nextLevelBtn: document.getElementById('nextLevelBtn'),
+        replayBtn: document.getElementById('replayBtn'),
+        resultMenuBtn: document.getElementById('resultMenuBtn'),
+        touchControls: document.getElementById('touchControls'),
+        jumpTouchBtn: document.getElementById('jumpTouchBtn'),
+        dashTouchBtn: document.getElementById('dashTouchBtn'),
+      };
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function fmtTime(seconds) {
+        const safe = Math.max(0, seconds);
+        const mins = Math.floor(safe / 60);
+        const secs = Math.floor(safe % 60);
+        const hundredths = Math.floor((safe % 1) * 100);
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`;
+      }
+
+      function seeded(seed) {
+        let s = seed >>> 0;
+        return () => {
+          s = (s * 1664525 + 1013904223) >>> 0;
+          return s / 0x100000000;
+        };
+      }
+
+      function deepCloneArray(arr) {
+        return arr.map(item => ({ ...item }));
+      }
+
+      function hexToRgba(hex, alpha = 1) {
+        const value = String(hex || '').trim();
+        if (!value.startsWith('#')) return `rgba(255, 255, 255, ${alpha})`;
+        let clean = value.slice(1);
+        if (clean.length === 3) {
+          clean = clean.split('').map(ch => ch + ch).join('');
+        }
+        if (clean.length !== 6) return `rgba(255, 255, 255, ${alpha})`;
+        const int = parseInt(clean, 16);
+        const r = (int >> 16) & 255;
+        const g = (int >> 8) & 255;
+        const b = int & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      class LevelBuilder {
+        constructor(meta) {
+          this.meta = meta;
+          this.solids = [];
+          this.hazards = [];
+          this.portals = [];
+          this.pickups = [];
+          this.messages = [];
+          this.checkpoints = [];
+          this.finishGate = null;
+          this.shardCount = 0;
+          this.length = 2400;
+        }
+
+        floor(x, w, y = FLOOR_Y) {
+          this.solids.push({ kind: 'solid', x, y, w, h: GAME_H - y, tag: 'floor' });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        roof(x, w, bottom = ROOF_BOTTOM) {
+          this.solids.push({ kind: 'solid', x, y: 0, w, h: bottom, tag: 'roof' });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        platform(x, y, w, h = 20) {
+          this.solids.push({ kind: 'solid', x, y, w, h, tag: 'platform' });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        block(x, y, w, h, tag = 'block') {
+          this.solids.push({ kind: 'solid', x, y, w, h, tag });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        ramp(x, baseY = FLOOR_Y, w = 280, h = 120, dir = 'upRight', tag = 'ramp') {
+          const topY = baseY - h;
+          this.solids.push({ kind: 'solid', shape: 'ramp', x, y: topY, w, h, dir, tag });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        stairs(x, baseY = FLOOR_Y, steps = 4, stepW = 88, stepH = 28, dir = 'upRight', tag = 'stair') {
+          for (let i = 0; i < steps; i++) {
+            const stepIndex = dir === 'upRight' ? i + 1 : steps - i;
+            const stepTop = baseY - stepIndex * stepH;
+            this.block(x + i * stepW, stepTop, stepW, GAME_H - stepTop, tag);
+          }
+          return this;
+        }
+
+        spikesUp(x, count, baseY = FLOOR_Y, size = 50, spacing = 54) {
+          for (let i = 0; i < count; i++) {
+            const sx = x + i * spacing;
+            this.hazards.push({ type: 'spike', x: sx, y: baseY - size, w: size, h: size, dir: 'up' });
+            this.length = Math.max(this.length, sx + size);
+          }
+          return this;
+        }
+
+        spikesDown(x, count, bottom = ROOF_BOTTOM, size = 50, spacing = 54) {
+          for (let i = 0; i < count; i++) {
+            const sx = x + i * spacing;
+            this.hazards.push({ type: 'spike', x: sx, y: bottom, w: size, h: size, dir: 'down' });
+            this.length = Math.max(this.length, sx + size);
+          }
+          return this;
+        }
+
+        saw(x, y, r = 28) {
+          this.hazards.push({ type: 'saw', x, y, r });
+          this.length = Math.max(this.length, x + r);
+          return this;
+        }
+
+        laser(x, y, w, h, period = 1, activeFor = 0.45, phase = 0, axis = 'vertical') {
+          this.hazards.push({ type: 'laser', x, y, w, h, period, activeFor, phase, axis });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        portal(x, y, portal, extra = {}) {
+          const portalData = { type: 'portal', x, y, w: 96, h: 124, portal, ...extra };
+          this.portals.push(portalData);
+          this.length = Math.max(this.length, x + portalData.w);
+          return this;
+        }
+
+        orb(x, y, power = 1050, color = 'yellow') {
+          this.pickups.push({ type: 'orb', x, y, r: 28, power, cooldown: 0, color });
+          this.length = Math.max(this.length, x + 30);
+          return this;
+        }
+
+        gravityOrb(x, y) {
+          this.pickups.push({ type: 'gravityOrb', x, y, r: 28, cooldown: 0, color: 'blue' });
+          this.length = Math.max(this.length, x + 30);
+          return this;
+        }
+
+        pad(x, y, w = 72, h = 18, power = 1240, color = 'yellow') {
+          this.pickups.push({ type: 'pad', x, y, w, h, power, cooldown: 0, color });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        gravityPad(x, y, w = 72, h = 18) {
+          this.pickups.push({ type: 'gravityPad', x, y, w, h, cooldown: 0, color: 'blue' });
+          this.length = Math.max(this.length, x + w);
+          return this;
+        }
+
+        coin(x, y) {
+          this.pickups.push({ type: 'coin', x, y, r: 22, index: this.shardCount++ });
+          this.length = Math.max(this.length, x + 22);
+          return this;
+        }
+
+        crystal(x, y) {
+          return this.coin(x, y);
+        }
+
+        dashCrystal(x, y) {
+          this.pickups.push({ type: 'dash', x, y, r: 20 });
+          this.length = Math.max(this.length, x + 20);
+          return this;
+        }
+
+        checkpoint(x, y = FLOOR_Y - PLAYER_BASE_SIZE) {
+          this.checkpoints.push({ x, y, w: 74, h: 180, hit: false });
+          this.length = Math.max(this.length, x + 74);
+          return this;
+        }
+
+        message(x, y, text) {
+          this.messages.push({ x, y, text });
+          this.length = Math.max(this.length, x + 400);
+          return this;
+        }
+
+        finish(extra = 1200) {
+          const runwayStart = this.length;
+          const runwayLength = Math.max(680, extra);
+          this.floor(runwayStart, runwayLength);
+          this.finishGate = {
+            x: runwayStart + runwayLength - 190,
+            y: 152,
+            w: 116,
+            h: FLOOR_Y - 152,
+          };
+          this.length = runwayStart + runwayLength;
+          return {
+            ...this.meta,
+            solids: this.solids,
+            hazards: this.hazards,
+            portals: this.portals,
+            pickups: this.pickups,
+            messages: this.messages,
+            checkpoints: this.checkpoints,
+            finishGate: this.finishGate,
+            shardCount: this.shardCount,
+            length: this.length,
+          };
+        }
+      }
+
+
+      function addCleanSpawn(b, startX = 0, platformLength = 560, gap = 160, y = FLOOR_Y) {
+        b.floor(startX, platformLength, y);
+        return startX + platformLength + gap;
+      }
+
+      function addIntroRun(b, startX, difficulty = 0) {
+        const gap1 = 150 + difficulty * 18;
+        const gap2 = 170 + difficulty * 22;
+        b.floor(startX, 640);
+        b.spikesUp(startX + 320, 1 + (difficulty > 0 ? 1 : 0));
+        b.floor(startX + 640 + gap1, 680);
+        b.spikesUp(startX + 860 + gap1, 2 + difficulty);
+        b.coin(startX + 620 + gap1 / 2, 660 - difficulty * 10);
+        b.floor(startX + 1320 + gap1 + gap2, 760);
+        b.spikesUp(startX + 1500 + gap1 + gap2, 2 + difficulty);
+        if (difficulty > 1) {
+          b.spikesUp(startX + 1760 + gap1 + gap2, 2);
+        }
+        return startX + 2200 + gap1 + gap2;
+      }
+
+function cubeStylePortalExtra(extra = {}) {
+  const {
+    portalTop = 72,
+    portalBottom = FLOOR_Y - 18,
+    y: _ignoredY,
+    h: _ignoredH,
+    ...rest
+  } = extra;
+  return { y: portalTop, h: portalBottom - portalTop, ...rest };
+}
+
+function floorPortalExtra(extra = {}) {
+  return cubeStylePortalExtra(extra);
+}
+
+function roofPortalExtra(roofBottom = ROOF_BOTTOM, extra = {}) {
+  return cubeStylePortalExtra(extra);
+}
+
+function tallPortalExtra(top = 190, bottom = FLOOR_Y - 18, extra = {}) {
+  return { y: top, h: bottom - top, ...extra };
+}
+
+function rampSurfaceY(solid, sampleX) {
+  const t = clamp((sampleX - solid.x) / solid.w, 0, 1);
+  return solid.dir === 'upLeft'
+    ? solid.y + t * solid.h
+    : solid.y + solid.h - t * solid.h;
+}
+
+function solidBounds(solid) {
+  return { x: solid.x, y: solid.y, w: solid.w, h: solid.h };
+}
+
+function solidBlocksRect(solid, rect) {
+  if (solid.shape !== 'ramp') {
+    return overlapRect(rect, solidBounds(solid));
+  }
+  if (!overlapRect(rect, solidBounds(solid))) {
+    return false;
+  }
+  const left = clamp(Math.max(rect.x, solid.x), solid.x + 1, solid.x + solid.w - 1);
+  const right = clamp(Math.min(rect.x + rect.w, solid.x + solid.w), solid.x + 1, solid.x + solid.w - 1);
+  const sampleXs = [left, right, clamp((left + right) * 0.5, solid.x + 1, solid.x + solid.w - 1)];
+  return sampleXs.some(sampleX => rect.y + rect.h > rampSurfaceY(solid, sampleX) + 2);
+}
+
+function addPadLeap(b, startX, difficulty = 0) {
+  const firstGap = 192 + difficulty * 24;
+  const secondGap = 132 + difficulty * 18;
+  b.floor(startX, 520);
+  b.pad(startX + 370, FLOOR_Y - 18, 74, 18, 1270 + difficulty * 44);
+  b.platform(startX + 500 + firstGap, 632 - difficulty * 10, 236);
+  b.platform(startX + 820 + firstGap + secondGap, 568 - difficulty * 18, 228);
+  b.floor(startX + 1180 + firstGap + secondGap, 920);
+  b.spikesUp(startX + 1260 + firstGap + secondGap, 2 + difficulty);
+  b.coin(startX + 900 + firstGap + secondGap / 2, 508 - difficulty * 10);
+  return startX + 2100 + firstGap + secondGap;
+}
+
+function addRampRun(b, startX, difficulty = 0) {
+  const rampW = 300 - difficulty * 10;
+  const rampH = 118 + difficulty * 12;
+  const plateauY = FLOOR_Y - rampH;
+  b.floor(startX, 360);
+  b.message(startX + 150, 480, difficulty === 0 ? 'ramp run' : 'ride the ramp');
+  b.ramp(startX + 360, FLOOR_Y, rampW, rampH, 'upRight');
+  b.floor(startX + 360 + rampW, 250, plateauY);
+  b.coin(startX + 360 + rampW - 70, plateauY - 92 + difficulty * 4);
+  if (difficulty > 0) {
+    b.pad(startX + 360 + rampW + 120, plateauY - 18, 74, 18, 1310 + difficulty * 45);
+  }
+  b.floor(startX + 1030, 920);
+  b.spikesUp(startX + 1130, 1 + difficulty);
+  return startX + 1950;
+}
+
+function addAutoStairs(b, startX, difficulty = 0) {
+  const steps = 5 + Math.min(1, difficulty);
+  const stepW = 88 - difficulty * 2;
+  const stepH = 28 + difficulty * 2;
+  const topY = FLOOR_Y - steps * stepH;
+  b.floor(startX, 340);
+  b.message(startX + 145, 480, difficulty === 0 ? 'auto stairs' : 'stair climb');
+  b.stairs(startX + 340, FLOOR_Y, steps, stepW, stepH, 'upRight');
+  b.floor(startX + 340 + steps * stepW, 260, topY);
+  if (difficulty > 0) {
+    b.saw(startX + 340 + Math.floor(steps * 0.55) * stepW, topY - 108, 20 + difficulty);
+  }
+  b.coin(startX + 340 + steps * stepW - 36, topY - 88);
+  b.floor(startX + 1120, 860);
+  return startX + 1980;
+}
+
+function addCubeStairSprint(b, startX, difficulty = 0) {
+  const steps = 5 + Math.min(1, difficulty);
+  const stepW = 86 - difficulty * 2;
+  const stepH = 30 + difficulty * 2;
+  const stairTop = FLOOR_Y - steps * stepH;
+  const rampH = 92 + difficulty * 10;
+  const upperY = stairTop - rampH;
+  b.floor(startX, 360);
+  b.message(startX + 150, 480, difficulty === 0 ? 'step the skyline' : 'stair sprint');
+  b.stairs(startX + 360, FLOOR_Y, steps, stepW, stepH, 'upRight');
+  b.floor(startX + 360 + steps * stepW, 220, stairTop);
+  b.ramp(startX + 1010, stairTop, 260 - difficulty * 8, rampH, 'upRight');
+  b.floor(startX + 1270, 220, upperY);
+  if (difficulty > 0) {
+    b.saw(startX + 1220, upperY - 96, 20 + difficulty);
+  }
+  if (difficulty > 1) {
+    b.spikesUp(startX + 1410, 1 + (difficulty > 1 ? 1 : 0), upperY, 36, 40);
+  }
+  b.coin(startX + 1310, upperY - 94);
+  b.floor(startX + 1700, 860);
+  b.spikesUp(startX + 1810, 2 + difficulty);
+  return startX + 2540;
+}
+
+function addLaserBridge(b, startX, difficulty = 0) {
+  const rampH = 108 + difficulty * 12;
+  const steps = 4 + Math.min(1, difficulty);
+  const stepW = 86 - difficulty * 2;
+  const stepH = 28 + difficulty * 2;
+  const midY = FLOOR_Y - rampH;
+  const topY = midY - steps * stepH;
+  b.floor(startX, 360);
+  b.message(startX + 150, 480, difficulty === 0 ? 'reactor climb' : 'reactor bypass');
+  b.ramp(startX + 360, FLOOR_Y, 300 - difficulty * 10, rampH, 'upRight');
+  b.floor(startX + 650, 190, midY);
+  b.stairs(startX + 840, midY, steps, stepW, stepH, 'upRight');
+  b.floor(startX + 840 + steps * stepW, 240, topY);
+  if (difficulty > 0) {
+    b.saw(startX + 980, topY - 108, 20 + difficulty);
+  }
+  b.coin(startX + 1180, topY - 88);
+  b.floor(startX + 1580, 1040);
+  b.spikesUp(startX + 1700, 1 + difficulty);
+  return startX + 2800;
+}
+
+function addShipTunnel(b, startX, difficulty = 0, length = 1900) {
+  b.floor(startX, length + 380);
+  b.roof(startX, length + 380, 170);
+  b.message(startX + 180, 480, difficulty === 0 ? 'hold to fly' : 'ship control');
+  b.portal(startX + 70, 0, 'ship', floorPortalExtra({ label: 'Ship' }));
+  const sawSpacing = 320 - difficulty * 10;
+  const sawCount = 4 + difficulty;
+  for (let i = 0; i < sawCount; i++) {
+    const x = startX + 380 + i * sawSpacing;
+    const y = i % 2 === 0 ? 320 + difficulty * 10 : 540 - difficulty * 14;
+    b.saw(x, y, 23 + difficulty * 2);
+  }
+  if (difficulty >= 1) {
+    b.coin(startX + 980, 300);
+  }
+  if (difficulty >= 2) {
+    b.saw(startX + 1460, 430, 25 + difficulty);
+  }
+  b.coin(startX + length - 170, 250);
+  b.portal(startX + length + 170, 0, 'cube', tallPortalExtra(210, FLOOR_Y - 18, { label: 'Cube' }));
+  return startX + length + 620;
+}
+
+function addShipWeave(b, startX, difficulty = 0, length = 1920) {
+  const roofBottom = 170;
+  b.floor(startX, length + 420);
+  b.roof(startX, length + 420, roofBottom);
+  b.message(startX + 150, 480, difficulty === 0 ? 'reactor weave' : 'thread the core');
+  b.portal(startX + 70, 0, 'ship', floorPortalExtra({ label: 'Ship' }));
+  const count = 5 + difficulty;
+  const spacing = 250 - difficulty * 6;
+  const blockW = 84 + difficulty * 2;
+  for (let i = 0; i < count; i++) {
+    const x = startX + 340 + i * spacing;
+    if (i % 2 === 0) {
+      const y = 548 - difficulty * 14 - (i % 3 === 0 ? 18 : 0);
+      b.block(x, y, blockW, FLOOR_Y - y, 'block');
+    } else {
+      const h = 188 + difficulty * 14 + (i % 3 === 0 ? 16 : 0);
+      b.block(x, 0, blockW, h, 'block');
+    }
+    if (difficulty > 0 && i < count - 1) {
+      b.saw(x + 148, i % 2 === 0 ? 314 : 550, 20 + difficulty);
+    }
+  }
+  b.coin(startX + length - 220, 285);
+  b.portal(startX + length + 150, 0, 'cube', tallPortalExtra(205, FLOOR_Y - 18, { label: 'Cube' }));
+  return startX + length + 610;
+}
+
+function addGravityRun(b, startX, difficulty = 0, length = 1800) {
+  const roofBottom = 180;
+  b.floor(startX, 520);
+  b.message(startX + 170, 480, 'gravity shift');
+  b.roof(startX + 240, length + 320, roofBottom);
+  b.portal(startX + 250, 0, 'gravity', floorPortalExtra({ label: 'Flip' }));
+  const packs = 4 + difficulty;
+  const spacing = 280 - difficulty * 16;
+  for (let i = 0; i < packs; i++) {
+    b.spikesDown(startX + 580 + i * spacing, 2 + (i % 2), roofBottom);
+  }
+  if (difficulty >= 1) {
+    b.coin(startX + 910, 360);
+  }
+  if (difficulty >= 2) {
+    b.spikesDown(startX + 1340, 4, roofBottom, 48, 50);
+  }
+  b.portal(startX + length + 150, 0, 'gravity', roofPortalExtra(roofBottom, { label: 'Flip' }));
+  b.floor(startX + length + 260, 920);
+  return startX + length + 1100;
+}
+
+function addOrbChain(b, startX, difficulty = 0) {
+  const gapA = 200 + difficulty * 20;
+  const gapB = 160 + difficulty * 22;
+  const gapC = 210 + difficulty * 26;
+  b.floor(startX, 420);
+  b.message(startX + 150, 480, difficulty === 0 ? 'tap the rings' : 'chain the rings');
+  b.orb(startX + 500 + gapA / 2, 620 - difficulty * 10, 1060 + difficulty * 20);
+  b.platform(startX + 500 + gapA, 650 - difficulty * 16, 190);
+  b.orb(startX + 790 + gapA + gapB / 2, 560 - difficulty * 18, 1100 + difficulty * 40);
+  b.platform(startX + 790 + gapA + gapB, 610 - difficulty * 14, 180);
+  b.orb(startX + 1080 + gapA + gapB + gapC / 2, 520 - difficulty * 22, 1120 + difficulty * 50);
+  b.floor(startX + 1080 + gapA + gapB + gapC, 760);
+  b.coin(startX + 890 + gapA + gapB, 460 - difficulty * 10);
+  return startX + 1980 + gapA + gapB + gapC;
+}
+
+function addBallRun(b, startX, difficulty = 0, length = 1650) {
+  const roofBottom = 152;
+  b.floor(startX, length + 420);
+  b.roof(startX, length + 420, roofBottom);
+  b.message(startX + 160, 480, difficulty === 0 ? 'ball glide' : 'steady flips');
+  b.portal(startX + 70, 0, 'ball', floorPortalExtra({ label: 'Ball' }));
+  const count = 3 + difficulty;
+  const runStart = startX + 420;
+  const runEnd = startX + length - 240;
+  const spacing = count > 1 ? (runEnd - runStart) / (count - 1) : 0;
+  for (let i = 0; i < count; i++) {
+    const x = runStart + i * spacing;
+    const spikeCount = 1 + (difficulty > 1 && i % 2 === 0 ? 1 : 0);
+    if (i % 2 === 0) {
+      b.spikesUp(x, spikeCount, FLOOR_Y, 38, 60);
+    } else {
+      b.spikesDown(x, spikeCount, roofBottom, 38, 60);
+    }
+  }
+  if (difficulty >= 1) {
+    b.coin(startX + Math.floor(length * 0.54), 420 - difficulty * 10);
+  }
+  b.coin(startX + length - 190, 436 - difficulty * 8);
+  b.portal(startX + length + 150, 0, 'cube', tallPortalExtra(150, FLOOR_Y - 18, { label: 'Cube' }));
+  return startX + length + 600;
+}
+
+function addUfoRun(b, startX, difficulty = 0, length = 1750) {
+  const roofBottom = 170;
+  b.floor(startX, length + 400);
+  b.roof(startX, length + 400, roofBottom);
+  b.message(startX + 150, 480, difficulty === 0 ? 'tap to hop' : 'ufo bounce');
+  b.portal(startX + 70, 0, 'ufo', floorPortalExtra({ label: 'UFO' }));
+  const count = 5 + difficulty;
+  const spacing = 250 - difficulty * 8;
+  for (let i = 0; i < count; i++) {
+    const x = startX + 350 + i * spacing;
+    if (i % 2 === 0) {
+      const topY = 610 - difficulty * 18 - (i % 4 === 0 ? 26 : 0);
+      b.block(x, topY, 120, FLOOR_Y - topY, 'block');
+      if (difficulty > 0) {
+        b.spikesUp(x + 12, 2, topY, 38, 42);
+      }
+    } else {
+      const height = 180 + difficulty * 18 + (i % 3 === 0 ? 18 : 0);
+      b.block(x, roofBottom, 120, height, 'block');
+      if (difficulty > 0) {
+        b.spikesDown(x + 12, 2, roofBottom + height, 38, 42);
+      }
+    }
+    if (difficulty > 1 && i < count - 1) {
+      b.saw(x + 190, i % 2 === 0 ? 420 : 520, 22 + difficulty);
+    }
+  }
+  b.coin(startX + length - 240, 300 + difficulty * 8);
+  b.portal(startX + length + 140, 0, 'cube', tallPortalExtra(180, FLOOR_Y - 18, { label: 'Cube' }));
+  return startX + length + 560;
+}
+
+function addWaveTunnel(b, startX, difficulty = 0, length = 1700) {
+  const roofBottom = 170;
+  const entryFloor = 148;
+  const exitFloorStart = startX + length + 270;
+  const exitFloorLength = 500;
+  b.floor(startX, entryFloor);
+  b.roof(startX, length + 620, roofBottom);
+  b.message(startX + 120, 480, difficulty === 0 ? 'hold up / release down' : 'wave tunnel');
+  b.portal(startX + 64, 0, 'wave', floorPortalExtra({ label: 'Wave', entryX: startX + 196, entryY: 392 }));
+  const spacing = 256 - difficulty * 6;
+  const count = 5 + difficulty;
+  for (let i = 0; i < count; i++) {
+    const x = startX + 340 + i * spacing;
+    if (i % 2 === 0) {
+      const y = 618 - difficulty * 20;
+      b.block(x, y, 96, GAME_H - y, 'block');
+    } else {
+      const h = 158 + difficulty * 20;
+      b.block(x, roofBottom, 96, h, 'block');
+    }
+    if (difficulty > 1 && i % 3 === 0) {
+      b.saw(x + 152, i % 2 === 0 ? 330 : 590, 18 + difficulty);
+    }
+  }
+  if (difficulty > 0) {
+    b.portal(startX + Math.floor(length * 0.52), 0, 'speed', tallPortalExtra(160, FLOOR_Y - 18, { factor: 1.12 + difficulty * 0.04, label: 'Fast' }));
+    b.portal(startX + Math.floor(length * 0.79), 0, 'speed', tallPortalExtra(160, FLOOR_Y - 18, { factor: 1, label: 'Norm' }));
+  }
+  b.coin(startX + length - 220, 320);
+  b.portal(startX + length + 150, 0, 'cube', tallPortalExtra(150, FLOOR_Y - 18, { label: 'Cube', entryX: exitFloorStart, entryY: 620 }));
+  b.floor(exitFloorStart, exitFloorLength);
+  return startX + length + 600;
+}
+
+function addWaveNeedles(b, startX, difficulty = 0, length = 1680) {
+  const roofBottom = 170;
+  const entryFloor = 150;
+  const exitFloorStart = startX + length + 268;
+  const exitFloorLength = 520;
+  b.floor(startX, entryFloor);
+  b.roof(startX, length + 640, roofBottom);
+  b.message(startX + 120, 480, difficulty === 0 ? 'needle drive' : 'thread the needles');
+  b.portal(startX + 64, 0, 'wave', floorPortalExtra({ label: 'Wave', entryX: startX + 196, entryY: 384 }));
+  const count = 6 + difficulty;
+  const spacing = 214 - difficulty * 3;
+  for (let i = 0; i < count; i++) {
+    const x = startX + 320 + i * spacing;
+    if (i % 2 === 0) {
+      const y = 606 - difficulty * 14 - (i % 3 === 0 ? 20 : 0);
+      b.block(x, y, 70, GAME_H - y, 'block');
+      b.spikesUp(x - 4, 2, y, 32, 34);
+    } else {
+      const h = 190 + difficulty * 14 + (i % 3 === 0 ? 16 : 0);
+      b.block(x, 0, 70, h, 'block');
+      b.spikesDown(x - 4, 2, h, 32, 34);
+    }
+    if (difficulty > 1 && i % 4 === 1) {
+      b.saw(x + 122, i % 2 === 0 ? 320 : 590, 18 + difficulty);
+    }
+  }
+  if (difficulty > 0) {
+    b.portal(startX + Math.floor(length * 0.58), 0, 'speed', tallPortalExtra(160, FLOOR_Y - 18, { factor: 1.1 + difficulty * 0.05, label: 'Fast' }));
+    b.portal(startX + Math.floor(length * 0.83), 0, 'speed', tallPortalExtra(160, FLOOR_Y - 18, { factor: 1, label: 'Norm' }));
+  }
+  b.coin(startX + length - 210, 330);
+  b.portal(startX + length + 140, 0, 'cube', tallPortalExtra(150, FLOOR_Y - 18, { label: 'Cube', entryX: exitFloorStart, entryY: 620 }));
+  b.floor(exitFloorStart, exitFloorLength);
+  return startX + length + 560;
+}
+
+function addRobotClimb(b, startX, difficulty = 0) {
+  const rampH = 108 + difficulty * 10;
+  const stairSteps = 4 + Math.min(1, difficulty);
+  const stairW = 84 - difficulty * 2;
+  const stairH = 28 + difficulty * 2;
+  const midY = FLOOR_Y - rampH;
+  const topY = midY - stairSteps * stairH;
+  b.floor(startX, 420);
+  b.message(startX + 150, 480, difficulty === 0 ? 'hold for higher jumps' : 'robot climb');
+  b.portal(startX + 70, 0, 'robot', floorPortalExtra({ label: 'Robot' }));
+  if (difficulty > 0) {
+    b.spikesUp(startX + 320, 1 + (difficulty > 0 ? 1 : 0));
+  }
+  b.ramp(startX + 500, FLOOR_Y, 280 - difficulty * 8, rampH, 'upRight');
+  b.floor(startX + 770, 180, midY);
+  b.stairs(startX + 950, midY, stairSteps, stairW, stairH, 'upRight');
+  b.floor(startX + 950 + stairSteps * stairW, 220, topY);
+  if (difficulty > 0) {
+    b.pad(startX + 840, midY - 18, 72, 18, 1300 + difficulty * 45);
+  }
+  if (difficulty > 1) {
+    b.orb(startX + 1220, topY - 20, 1140);
+  }
+  b.coin(startX + 1260, topY - 92);
+  b.floor(startX + 1700, 920);
+  b.spikesUp(startX + 1790, 2 + difficulty);
+  b.portal(startX + 1980, 0, 'cube', floorPortalExtra({ label: 'Cube' }));
+  return startX + 2480;
+}
+
+function addSpeedStrip(b, startX, difficulty = 0, length = 1200) {
+  b.floor(startX, 260);
+  b.message(startX + 140, 480, 'speed up');
+  b.portal(startX + 70, 0, 'speed', floorPortalExtra({ factor: 1.18 + difficulty * 0.08, label: 'Fast' }));
+  b.floor(startX + 260, length);
+  b.spikesUp(startX + 430, 2 + difficulty);
+  b.orb(startX + 610, 610 - difficulty * 10, 1080 + difficulty * 30);
+  b.spikesUp(startX + 830, 3 + difficulty);
+  b.coin(startX + 900, 520 - difficulty * 12);
+  b.portal(startX + length + 140, 0, 'speed', floorPortalExtra({ factor: 1, label: 'Norm' }));
+  return startX + length + 480;
+}
+
+function addMixedSwitch(b, startX, difficulty = 0) {
+  b.floor(startX, 460);
+  b.message(startX + 140, 480, 'mode relay');
+  b.portal(startX + 80, 0, 'ship', floorPortalExtra({ label: 'Ship' }));
+  b.floor(startX + 150, 920);
+  b.roof(startX + 150, 920, 180);
+  b.saw(startX + 380, 320, 24 + difficulty * 2);
+  b.saw(startX + 650, 550, 26 + difficulty * 2);
+  if (difficulty > 1) {
+    b.saw(startX + 820, 430, 22 + difficulty);
+  }
+  b.portal(startX + 980, 0, 'cube', tallPortalExtra(200, FLOOR_Y - 18, { label: 'Cube' }));
+  b.floor(startX + 1080, 400);
+  b.portal(startX + 1180, 0, 'gravity', floorPortalExtra({ label: 'Flip' }));
+  b.roof(startX + 1160, 900, 180);
+  b.spikesDown(startX + 1440, 2, 180);
+  b.spikesDown(startX + 1740, 3, 180);
+  if (difficulty > 0) {
+    b.coin(startX + 1600, 360);
+  }
+  b.portal(startX + 1970, 0, 'gravity', roofPortalExtra(180, { label: 'Flip' }));
+  b.floor(startX + 2080, 920);
+  return startX + 3100;
+}
+
+function addShipReef(b, startX, difficulty = 0, length = 1820) {
+  const roofBottom = 170;
+  b.floor(startX, length + 420);
+  b.roof(startX, length + 420, roofBottom);
+  b.message(startX + 150, 480, difficulty === 0 ? 'nebula reef' : 'reef slalom');
+  b.portal(startX + 70, 0, 'ship', floorPortalExtra({ label: 'Ship' }));
+  const count = 5 + difficulty;
+  const spacing = 264 - difficulty * 6;
+  for (let i = 0; i < count; i++) {
+    const x = startX + 340 + i * spacing;
+    const y = i % 2 === 0 ? 320 + (i % 3) * 24 : 540 - (i % 3) * 28 - difficulty * 10;
+    b.saw(x, y, 22 + difficulty * 2);
+    if (difficulty > 0 && i < count - 1) {
+      b.saw(x + 122, i % 2 === 0 ? 520 - difficulty * 8 : 270 + difficulty * 8, 18 + difficulty);
+    }
+  }
+  if (difficulty > 1) {
+    b.coin(startX + 1360, 260);
+  }
+  b.coin(startX + length - 200, 320);
+  b.portal(startX + length + 150, 0, 'cube', tallPortalExtra(200, FLOOR_Y - 18, { label: 'Cube' }));
+  return startX + length + 600;
+}
+
+function addBallChicane(b, startX, difficulty = 0, length = 1600) {
+  const roofBottom = 150;
+  b.floor(startX, length + 420);
+  b.roof(startX, length + 420, roofBottom);
+  b.message(startX + 150, 480, difficulty === 0 ? 'ball lane' : 'flip lanes');
+  b.portal(startX + 70, 0, 'ball', floorPortalExtra({ label: 'Ball' }));
+  const count = 4 + difficulty;
+  const gateW = 70;
+  const runStart = startX + 340;
+  const runEnd = startX + length - 120;
+  const spacing = count > 1 ? (runEnd - runStart) / (count - 1) : 0;
+  for (let i = 0; i < count; i++) {
+    const x = runStart + i * spacing;
+    if (i % 2 === 0) {
+      const h = 144 + difficulty * 8 + (i % 3 === 0 ? 10 : 0);
+      b.block(x, roofBottom, gateW, h, 'block');
+      if (difficulty >= 1 && i > 0) {
+        b.spikesDown(x + 10, 1, roofBottom + h, 30, 34);
+      }
+    } else {
+      const y = 604 - difficulty * 10 - (i % 3 === 0 ? 12 : 0);
+      b.block(x, y, gateW, FLOOR_Y - y, 'block');
+      if (difficulty >= 1) {
+        b.spikesUp(x + 10, 1, y, 30, 34);
+      }
+    }
+  }
+  if (difficulty > 0) {
+    b.portal(startX + Math.floor(length * 0.56), 0, 'speed', tallPortalExtra(180, FLOOR_Y - 18, { factor: difficulty > 1 ? 0.92 : 0.94, label: 'Focus' }));
+    b.portal(startX + Math.floor(length * 0.84), 0, 'speed', tallPortalExtra(180, FLOOR_Y - 18, { factor: 1, label: 'Norm' }));
+  }
+  b.coin(startX + length - 200, 410 - difficulty * 10);
+  b.portal(startX + length + 150, 0, 'cube', tallPortalExtra(150, FLOOR_Y - 18, { label: 'Cube' }));
+  return startX + length + 580;
+}
+
+function addUfoAtrium(b, startX, difficulty = 0) {
+  b.floor(startX, 300);
+  b.message(startX + 140, 480, difficulty === 0 ? 'arc atrium' : 'atrium hops');
+  b.portal(startX + 70, 0, 'ufo', floorPortalExtra({ label: 'UFO' }));
+  b.platform(startX + 340, 650 - difficulty * 8, 170);
+  b.platform(startX + 620, 565 - difficulty * 12, 150);
+  b.platform(startX + 900, 655 - difficulty * 10, 170);
+  b.platform(startX + 1180, 525 - difficulty * 14, 150);
+  b.platform(startX + 1460, 625 - difficulty * 10, 180);
+  if (difficulty > 0) {
+    b.saw(startX + 520, 470, 22 + difficulty);
+    b.saw(startX + 1060, 430, 22 + difficulty);
+  }
+  if (difficulty > 1) {
+    b.saw(startX + 1330, 392, 20 + difficulty);
+  }
+  b.coin(startX + 1200, 360 - difficulty * 8);
+  b.floor(startX + 1710, 800);
+  b.portal(startX + 1830, 0, 'cube', tallPortalExtra(180, FLOOR_Y - 18, { label: 'Cube' }));
+  return startX + 2280;
+}
+
+function addRobotVault(b, startX, difficulty = 0) {
+  b.floor(startX, 340);
+  b.message(startX + 150, 480, difficulty === 0 ? 'robot vault' : 'vault the gaps');
+  b.portal(startX + 70, 0, 'robot', floorPortalExtra({ label: 'Robot' }));
+  if (difficulty > 0) {
+    b.spikesUp(startX + 310, 1 + (difficulty > 1 ? 1 : 0));
+  }
+  b.platform(startX + 520, 650 - difficulty * 8, 170);
+  b.pad(startX + 690, FLOOR_Y - 18, 72, 18, 1300 + difficulty * 40);
+  b.platform(startX + 940, 522 - difficulty * 16, 180);
+  b.platform(startX + 1260, 600 - difficulty * 10, 170);
+  if (difficulty > 0) {
+    b.spikesUp(startX + 986, 1, 522 - difficulty * 16, 38, 40);
+  }
+  if (difficulty > 1) {
+    b.orb(startX + 1120, 450, 1140 + difficulty * 30);
+  }
+  b.coin(startX + 1280, 410 - difficulty * 10);
+  b.floor(startX + 1540, 880);
+  b.spikesUp(startX + 1660, 2 + difficulty);
+  b.portal(startX + 1810, 0, 'cube', floorPortalExtra({ label: 'Cube' }));
+  return startX + 2300;
+}
+
+function addGravityChambers(b, startX, difficulty = 0) {
+  const roofBottom = 180;
+  b.floor(startX, 340);
+  b.message(startX + 160, 480, difficulty === 0 ? 'mirror chambers' : 'flip the chambers');
+  b.portal(startX + 90, 0, 'gravity', floorPortalExtra({ label: 'Flip' }));
+  b.roof(startX + 260, 560, roofBottom);
+  if (difficulty > 0) {
+    b.spikesDown(startX + 570, 2 + (difficulty > 1 ? 1 : 0), roofBottom, 40, 42);
+  }
+  b.portal(startX + 720, 0, 'gravity', roofPortalExtra(roofBottom, { label: 'Flip' }));
+  b.floor(startX + 880, 540);
+  b.spikesUp(startX + 1020, 2 + difficulty);
+  b.platform(startX + 1260, 640 - difficulty * 10, 180);
+  if (difficulty > 1) {
+    b.saw(startX + 1340, 560, 22 + difficulty);
+  }
+  b.portal(startX + 1460, 0, 'gravity', floorPortalExtra({ label: 'Flip' }));
+  b.roof(startX + 1620, 560, roofBottom);
+  b.spikesDown(startX + 1780, 3 + (difficulty > 1 ? 1 : 0), roofBottom, 40, 42);
+  if (difficulty > 0) {
+    b.coin(startX + 1880, 350);
+  }
+  b.portal(startX + 2040, 0, 'gravity', roofPortalExtra(roofBottom, { label: 'Flip' }));
+  b.floor(startX + 2200, 900);
+  return startX + 3120;
+}
+
+function buildLevels() {
+  const levels = [];
+
+  {
+    const b = new LevelBuilder({
+      id: 'pulse-initiation',
+      name: 'Pulse Initiation',
+      difficultyLabel: 'Easy',
+      description: 'The opener now mixes a real ramp climb, a roomy Ship reef, and a readable Ball chicane so the first stage teaches movement variety instead of only flat runs.',
+      modeSummary: 'Cube • Ship • Ball',
+      baseSpeed: 405,
+      bpm: 126,
+      theme: {
+        bgA: '#07111f',
+        bgB: '#11172f',
+        accent: '#73f2ff',
+        accent2: '#c089ff',
+        hazard: '#ff5d94',
+        good: '#9cffc5',
+        floor: '#1f3554',
+      },
+      seed: 11,
+    });
+    let x = addCleanSpawn(b, 0, 560, 150);
+    x = addIntroRun(b, x, 0);
+    b.checkpoint(x - 210);
+    x = addRampRun(b, x, 0);
+    b.checkpoint(x - 220);
+    x = addShipReef(b, x, 0, 1400);
+    b.checkpoint(x - 220);
+    x = addBallChicane(b, x, 0, 1320);
+    b.floor(x, 1080);
+    b.spikesUp(x + 240, 1);
+    b.spikesUp(x + 580, 2);
+    levels.push(b.finish(1150));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'reactor-run',
+      name: 'Reactor Run',
+      difficultyLabel: 'Normal',
+      description: 'A denser reactor course that now climbs through ramps and stairs before Ball flips, open UFO hops, and a safer ship weave.',
+      modeSummary: 'Cube • Ball • UFO • Ship',
+      baseSpeed: 440,
+      bpm: 134,
+      theme: {
+        bgA: '#0a120d',
+        bgB: '#13261d',
+        accent: '#8fffd8',
+        accent2: '#8cc0ff',
+        hazard: '#ff7161',
+        good: '#d2ff78',
+        floor: '#26403a',
+      },
+      seed: 27,
+    });
+    let x = addCleanSpawn(b, 0, 580, 165);
+    x = addLaserBridge(b, x, 0);
+    b.checkpoint(x - 240);
+    x = addBallRun(b, x, 0, 1450);
+    b.checkpoint(x - 220);
+    x = addUfoAtrium(b, x, 0);
+    b.checkpoint(x - 220);
+    x = addShipWeave(b, x, 1, 1680);
+    x = addOrbChain(b, x, 0);
+    b.floor(x, 980);
+    levels.push(b.finish(1250));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'skyline-steps',
+      name: 'Skyline Steps',
+      difficultyLabel: 'Hard',
+      description: 'A vertical route built around real stair climbs, auto-step rises, heavier Robot vaults, and a longer ship corridor.',
+      modeSummary: 'Cube • Robot • Ship',
+      baseSpeed: 470,
+      bpm: 142,
+      theme: {
+        bgA: '#16111d',
+        bgB: '#2b1834',
+        accent: '#ffb4f7',
+        accent2: '#73f2ff',
+        hazard: '#ffd166',
+        good: '#9cffc5',
+        floor: '#41234f',
+      },
+      seed: 33,
+    });
+    let x = addCleanSpawn(b, 0, 560, 175);
+    x = addCubeStairSprint(b, x, 0);
+    b.checkpoint(x - 220);
+    x = addAutoStairs(b, x, 0);
+    b.checkpoint(x - 220);
+    x = addRobotVault(b, x, 0);
+    b.checkpoint(x - 240);
+    x = addShipTunnel(b, x, 1, 1720);
+    x = addPadLeap(b, x, 1);
+    b.floor(x, 1100);
+    b.spikesUp(x + 250, 2);
+    levels.push(b.finish(1320));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'vertigo-circuit',
+      name: 'Vertigo Circuit',
+      difficultyLabel: 'Harder',
+      description: 'Mirror gravity chambers open the route, then the stage swings into a Wave tunnel and a sharper orb-finishing cube section.',
+      modeSummary: 'Cube • Gravity • Wave',
+      baseSpeed: 495,
+      bpm: 150,
+      theme: {
+        bgA: '#0d0e25',
+        bgB: '#1d2344',
+        accent: '#73a7ff',
+        accent2: '#e59cff',
+        hazard: '#ff7b9d',
+        good: '#b6ff8e',
+        floor: '#24356d',
+      },
+      seed: 43,
+    });
+    let x = addCleanSpawn(b, 0, 540, 155);
+    x = addGravityChambers(b, x, 1);
+    b.checkpoint(x - 240);
+    x = addWaveTunnel(b, x, 0, 1520);
+    b.checkpoint(x - 220);
+    x = addOrbChain(b, x, 1);
+    b.floor(x, 1220);
+    b.spikesUp(x + 220, 2);
+    b.spikesUp(x + 600, 3);
+    levels.push(b.finish(1380));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'arcade-ascent',
+      name: 'Arcade Ascent',
+      difficultyLabel: 'Harder',
+      description: 'A bounce-heavy climb that now opens on a ramp run before UFO hops, Robot climbs, and a faster Wave needle finish.',
+      modeSummary: 'Cube • UFO • Robot • Wave',
+      baseSpeed: 520,
+      bpm: 156,
+      theme: {
+        bgA: '#081820',
+        bgB: '#0f2a33',
+        accent: '#73f2ff',
+        accent2: '#ffe066',
+        hazard: '#ff5d94',
+        good: '#9cffc5',
+        floor: '#1c4550',
+      },
+      seed: 51,
+    });
+    let x = addCleanSpawn(b, 0, 530, 160);
+    x = addRampRun(b, x, 1);
+    x = addUfoRun(b, x, 1, 1620);
+    b.checkpoint(x - 230);
+    x = addRobotClimb(b, x, 1);
+    b.checkpoint(x - 240);
+    x = addWaveNeedles(b, x, 1, 1560);
+    b.floor(x, 1260);
+    b.spikesUp(x + 240, 2);
+    b.spikesUp(x + 540, 3);
+    levels.push(b.finish(1480));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'quantum-rift',
+      name: 'Quantum Rift',
+      difficultyLabel: 'Insane',
+      description: 'This route now leans into technical Ball gate flips, a faster reef-style Ship slalom, and a tighter Wave needle finish.',
+      modeSummary: 'Cube • Ball • Ship • Wave',
+      baseSpeed: 540,
+      bpm: 160,
+      theme: {
+        bgA: '#12081e',
+        bgB: '#27113a',
+        accent: '#ff8fe6',
+        accent2: '#73f2ff',
+        hazard: '#ffd166',
+        good: '#9cffc5',
+        floor: '#4d1d5e',
+      },
+      seed: 59,
+    });
+    let x = addCleanSpawn(b, 0, 570, 170);
+    x = addBallChicane(b, x, 1, 1560);
+    b.checkpoint(x - 220);
+    x = addShipReef(b, x, 1, 1760);
+    b.checkpoint(x - 240);
+    x = addWaveNeedles(b, x, 1, 1640);
+    b.floor(x, 1320);
+    b.spikesUp(x + 200, 3);
+    b.spikesUp(x + 560, 4);
+    levels.push(b.finish(1580));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'prism-velocity',
+      name: 'Prism Velocity',
+      difficultyLabel: 'Expert',
+      description: 'Rebuilt from scratch: a stair-driven opener snaps into Ball gate flips, then a wider Wave ribbon and a Robot vault close the stage.',
+      modeSummary: 'Cube • Ball • Wave • Robot',
+      baseSpeed: 548,
+      bpm: 162,
+      theme: {
+        bgA: '#0f1126',
+        bgB: '#26194a',
+        accent: '#73a7ff',
+        accent2: '#ff8fe6',
+        hazard: '#ffd166',
+        good: '#9cffc5',
+        floor: '#304387',
+      },
+      seed: 167,
+    });
+    let x = addCleanSpawn(b, 0, 590, 180);
+    x = addCubeStairSprint(b, x, 1);
+    b.checkpoint(x - 220);
+    x = addBallChicane(b, x, 1, 1480);
+    b.checkpoint(x - 240);
+    x = addWaveTunnel(b, x, 0, 1580);
+    b.checkpoint(x - 230);
+    x = addRobotVault(b, x, 1);
+    b.floor(x, 1320);
+    b.spikesUp(x + 220, 3);
+    b.spikesUp(x + 600, 4);
+    levels.push(b.finish(1600));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'neon-skydive',
+      name: 'Neon Skydive',
+      difficultyLabel: 'Expert',
+      description: 'An airborne stage that now opens on a cleaner Wave route before switching to open UFO platforms and a tighter ship weave.',
+      modeSummary: 'Cube • Wave • UFO • Ship',
+      baseSpeed: 585,
+      bpm: 170,
+      theme: {
+        bgA: '#120b0f',
+        bgB: '#2a1522',
+        accent: '#ff9d5c',
+        accent2: '#ff5d94',
+        hazard: '#ffe066',
+        good: '#73f2ff',
+        floor: '#5a2134',
+      },
+      seed: 73,
+    });
+    let x = addCleanSpawn(b, 0, 550, 175);
+    x = addWaveTunnel(b, x, 1, 1700);
+    b.checkpoint(x - 220);
+    x = addUfoAtrium(b, x, 1);
+    b.checkpoint(x - 230);
+    x = addShipWeave(b, x, 2, 1980);
+    b.floor(x, 1380);
+    b.spikesUp(x + 200, 3);
+    b.spikesUp(x + 540, 4);
+    b.spikesUp(x + 920, 4);
+    levels.push(b.finish(1700));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'hyper-relay',
+      name: 'Hyper Relay',
+      difficultyLabel: 'Demon',
+      description: 'The relay now feels more distinct: a speed strip, brutal Wave needles, Robot vaults, UFO lane changes, and a mode-switching finale.',
+      modeSummary: 'Cube • Wave • Robot • UFO • Ship • Gravity',
+      baseSpeed: 605,
+      bpm: 174,
+      theme: {
+        bgA: '#09141a',
+        bgB: '#12303b',
+        accent: '#8fffd8',
+        accent2: '#8cc0ff',
+        hazard: '#ff7161',
+        good: '#d2ff78',
+        floor: '#28515d',
+      },
+      seed: 81,
+    });
+    let x = addCleanSpawn(b, 0, 580, 180);
+    x = addSpeedStrip(b, x, 1, 1280);
+    x = addWaveNeedles(b, x, 2, 1700);
+    b.checkpoint(x - 230);
+    x = addRobotVault(b, x, 2);
+    b.checkpoint(x - 240);
+    x = addUfoRun(b, x, 2, 1760);
+    x = addMixedSwitch(b, x, 2);
+    b.floor(x, 1420);
+    b.spikesUp(x + 180, 3);
+    b.spikesUp(x + 560, 4);
+    b.spikesUp(x + 980, 5);
+    levels.push(b.finish(1800));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'apex-overdrive',
+      name: 'Apex Overdrive',
+      difficultyLabel: 'Extreme',
+      description: 'The final gauntlet now mixes relay switches, Ball gates, speed surges, Wave needles, a Ship reef, Robot climbs, and one last UFO atrium.',
+      modeSummary: 'Cube • Gravity • Ball • Wave • Ship • Robot • UFO',
+      baseSpeed: 630,
+      bpm: 178,
+      theme: {
+        bgA: '#14080c',
+        bgB: '#2a0f19',
+        accent: '#ff9d5c',
+        accent2: '#ff5d94',
+        hazard: '#ffe066',
+        good: '#73f2ff',
+        floor: '#5a2134',
+      },
+      seed: 97,
+    });
+    let x = addCleanSpawn(b, 0, 600, 190);
+    x = addMixedSwitch(b, x, 2);
+    b.checkpoint(x - 230);
+    x = addBallChicane(b, x, 2, 1680);
+    b.checkpoint(x - 220);
+    x = addSpeedStrip(b, x, 2, 1320);
+    x = addWaveNeedles(b, x, 2, 1760);
+    b.checkpoint(x - 220);
+    x = addShipReef(b, x, 2, 2080);
+    x = addRobotClimb(b, x, 2);
+    b.checkpoint(x - 240);
+    x = addUfoAtrium(b, x, 2);
+    b.floor(x, 1640);
+    b.spikesUp(x + 180, 4);
+    b.spikesUp(x + 540, 5);
+    b.spikesUp(x + 980, 5);
+    b.coin(x + 1180, 500);
+    levels.push(b.finish(2080));
+  }
+
+  return levels;
+}
+
+
+function buildTrainingLevels() {
+  const training = [];
+
+  {
+    const b = new LevelBuilder({
+      id: 'training-cube-foundations',
+      name: 'Cube Foundations',
+      difficultyLabel: 'Training',
+      description: 'Simple jumps, ramps, stairs, and one clean pad leap built to warm up Cube timing without campaign-length pressure.',
+      modeSummary: 'Cube',
+      focusForm: 'cube',
+      training: true,
+      baseSpeed: 430,
+      bpm: 126,
+      theme: {
+        bgA: '#08111f',
+        bgB: '#13253f',
+        accent: '#73f2ff',
+        accent2: '#c089ff',
+        hazard: '#ff6778',
+        good: '#9afc8f',
+        floor: '#244166',
+      },
+      seed: 201,
+    });
+    let x = addCleanSpawn(b, 0, 620, 150);
+    b.message(x + 120, 560, 'TRAINING • CUBE');
+    b.floor(x, 380);
+    b.spikesUp(x + 240, 1);
+    b.floor(x + 470, 320);
+    b.stairs(x + 860, FLOOR_Y, 4, 82, 24, 'upRight');
+    b.platform(x + 1210, 620, 220);
+    b.floor(x + 1520, 340);
+    b.pad(x + 1760, FLOOR_Y - 18, 74, 18, 1280);
+    b.platform(x + 1990, 600, 240);
+    b.ramp(x + 2310, FLOOR_Y, 260, 120, 'upRight');
+    b.floor(x + 2560, 1020);
+    b.spikesUp(x + 2790, 2);
+    b.coin(x + 2060, 520);
+    training.push(b.finish(820));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'training-ship-glide-range',
+      name: 'Ship Glide Range',
+      difficultyLabel: 'Training',
+      description: 'A gentle flying range with broad upper and lower lane swaps so you can practice ship taps and holds without cramped walls.',
+      modeSummary: 'Ship',
+      focusForm: 'ship',
+      training: true,
+      baseSpeed: 405,
+      bpm: 132,
+      theme: {
+        bgA: '#150b10',
+        bgB: '#2b1620',
+        accent: '#ff9d5c',
+        accent2: '#ff5d94',
+        hazard: '#ffe066',
+        good: '#73f2ff',
+        floor: '#5a2134',
+      },
+      seed: 203,
+    });
+    let x = addCleanSpawn(b, 0, 620, 0);
+    b.message(x + 120, 560, 'TRAINING • SHIP');
+    b.portal(x + 24, 300, 'ship', tallPortalExtra(188, 624, { entryY: 392, label: 'SHIP' }));
+    x += 180;
+    b.block(x, 560, 340, GAME_H - 560, 'laneLow');
+    b.roof(x + 460, 360, 330);
+    b.block(x + 960, 520, 340, GAME_H - 520, 'laneLow');
+    b.roof(x + 1420, 360, 290);
+    b.block(x + 1880, 540, 380, GAME_H - 540, 'laneLow');
+    b.roof(x + 2400, 360, 320);
+    const exitX = x + 2860;
+    b.portal(exitX, 300, 'cube', floorPortalExtra({ entryX: exitX + 120, entryY: FLOOR_Y - 40, label: 'CUBE' }));
+    b.floor(exitX + 100, 1180);
+    b.spikesUp(exitX + 420, 2);
+    b.coin(x + 1700, 260);
+    training.push(b.finish(760));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'training-ball-flip-lab',
+      name: 'Ball Flip Lab',
+      difficultyLabel: 'Training',
+      description: 'Long floor and ceiling lanes with roomy swaps so you can learn Ball flips from actual surfaces instead of relying on air timing.',
+      modeSummary: 'Ball',
+      focusForm: 'ball',
+      training: true,
+      baseSpeed: 392,
+      bpm: 124,
+      theme: {
+        bgA: '#130f05',
+        bgB: '#2a220f',
+        accent: '#ffd166',
+        accent2: '#ffb703',
+        hazard: '#ff6b6b',
+        good: '#8fffd8',
+        floor: '#5a4a1f',
+      },
+      seed: 205,
+    });
+    let x = addCleanSpawn(b, 0, 620, 0);
+    b.message(x + 120, 560, 'TRAINING • BALL');
+    b.portal(x + 24, 300, 'ball', floorPortalExtra({ entryY: FLOOR_Y - 42, label: 'BALL' }));
+    x += 180;
+    b.floor(x, 460);
+    b.roof(x + 540, 440, 230);
+    b.floor(x + 1100, 480);
+    b.roof(x + 1670, 460, 250);
+    b.floor(x + 2260, 1180);
+    b.checkpoint(x + 1350);
+    b.coin(x + 1910, 470);
+    training.push(b.finish(780));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'training-ufo-hop-garden',
+      name: 'UFO Hop Garden',
+      difficultyLabel: 'Training',
+      description: 'Wide hop spacing, forgiving platform heights, and clean recoveries built to teach UFO rhythm without stacking traps on top of each other.',
+      modeSummary: 'UFO',
+      focusForm: 'ufo',
+      training: true,
+      baseSpeed: 408,
+      bpm: 128,
+      theme: {
+        bgA: '#07161c',
+        bgB: '#10313b',
+        accent: '#73f2ff',
+        accent2: '#8cc0ff',
+        hazard: '#ff7161',
+        good: '#d2ff78',
+        floor: '#28515d',
+      },
+      seed: 207,
+    });
+    let x = addCleanSpawn(b, 0, 620, 0);
+    b.message(x + 120, 560, 'TRAINING • UFO');
+    b.portal(x + 24, 300, 'ufo', tallPortalExtra(188, 624, { entryY: 520, label: 'UFO' }));
+    x += 180;
+    b.floor(x, 220);
+    b.platform(x + 320, 640, 180);
+    b.platform(x + 610, 540, 180);
+    b.platform(x + 910, 680, 200);
+    b.platform(x + 1220, 520, 190);
+    b.platform(x + 1520, 620, 190);
+    b.platform(x + 1810, 500, 190);
+    b.floor(x + 2120, 1020);
+    b.checkpoint(x + 1180);
+    b.coin(x + 1310, 430);
+    training.push(b.finish(760));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'training-robot-vault-yard',
+      name: 'Robot Vault Yard',
+      difficultyLabel: 'Training',
+      description: 'A shorter robot warm-up with stair climbs, higher landings, and bigger hold-jumps that teach the form without crowding the gaps.',
+      modeSummary: 'Robot',
+      focusForm: 'robot',
+      training: true,
+      baseSpeed: 425,
+      bpm: 130,
+      theme: {
+        bgA: '#140d06',
+        bgB: '#2d1b0f',
+        accent: '#ffb05c',
+        accent2: '#ffd166',
+        hazard: '#ff6b6b',
+        good: '#73f2ff',
+        floor: '#61412a',
+      },
+      seed: 209,
+    });
+    let x = addCleanSpawn(b, 0, 620, 0);
+    b.message(x + 120, 560, 'TRAINING • ROBOT');
+    b.portal(x + 24, 300, 'robot', floorPortalExtra({ entryY: FLOOR_Y - 42, label: 'ROBOT' }));
+    x += 180;
+    b.floor(x, 360);
+    b.stairs(x + 420, FLOOR_Y, 5, 78, 26, 'upRight');
+    b.floor(x + 840, 220);
+    b.platform(x + 1140, 560, 220);
+    b.floor(x + 1480, 320);
+    b.ramp(x + 1880, FLOOR_Y, 260, 120, 'upRight');
+    b.platform(x + 2230, 500, 220);
+    b.floor(x + 2550, 1180);
+    b.checkpoint(x + 1580);
+    b.coin(x + 2290, 430);
+    training.push(b.finish(760));
+  }
+
+  {
+    const b = new LevelBuilder({
+      id: 'training-wave-ribbon-course',
+      name: 'Wave Ribbon Course',
+      difficultyLabel: 'Training',
+      description: 'A cleaner wave corridor with broader ribbons, no ground under the opening, and a cube exit so you can repeat the tracing motion safely.',
+      modeSummary: 'Wave',
+      focusForm: 'wave',
+      training: true,
+      baseSpeed: 410,
+      bpm: 136,
+      theme: {
+        bgA: '#0a120d',
+        bgB: '#14311d',
+        accent: '#8fffd8',
+        accent2: '#73f2ff',
+        hazard: '#ff6b6b',
+        good: '#d2ff78',
+        floor: '#204d34',
+      },
+      seed: 211,
+    });
+    let x = addCleanSpawn(b, 0, 620, 0);
+    b.message(x + 120, 560, 'TRAINING • WAVE');
+    b.portal(x + 24, 300, 'wave', tallPortalExtra(192, 624, { entryY: 392, label: 'WAVE' }));
+    x += 180;
+    b.roof(x, 320, 220);
+    b.block(x, 660, 320, GAME_H - 660, 'waveLow');
+    b.roof(x + 420, 320, 320);
+    b.block(x + 420, 580, 320, GAME_H - 580, 'waveLow');
+    b.roof(x + 840, 320, 190);
+    b.block(x + 840, 700, 320, GAME_H - 700, 'waveLow');
+    b.roof(x + 1260, 320, 300);
+    b.block(x + 1260, 610, 320, GAME_H - 610, 'waveLow');
+    b.roof(x + 1680, 320, 210);
+    b.block(x + 1680, 690, 320, GAME_H - 690, 'waveLow');
+    b.checkpoint(x + 1180);
+    b.coin(x + 1460, 450);
+    const exitX = x + 2220;
+    b.portal(exitX, 300, 'cube', floorPortalExtra({ entryX: exitX + 120, entryY: FLOOR_Y - 40, label: 'CUBE' }));
+    b.floor(exitX + 100, 1120);
+    b.spikesUp(exitX + 380, 2);
+    training.push(b.finish(760));
+  }
+
+  return training;
+}
+
+      const levels = buildLevels();
+      const trainingLevels = buildTrainingLevels();
+      const allLevels = [...levels, ...trainingLevels];
+
+      const TRAINING_DISTANCE_SCALE = 10;
+      const TRAINING_DISTANCE_SPLIT = 250;
+      const TRAINING_GENERATION_AHEAD = 4200;
+      const TRAINING_PREVIEW_LENGTH = 8200;
+
+      function trainingFormName(form = 'cube') {
+        const labels = { cube: 'Cube', ship: 'Ship', ball: 'Ball', ufo: 'UFO', wave: 'Wave', robot: 'Robot' };
+        return labels[form] || 'Cube';
+      }
+
+      function endlessTrainingDescription(level) {
+        const form = level.focusForm || 'cube';
+        switch (form) {
+          case 'ship':
+            return 'Endless procedural ship lanes with broad tunnels, safer reactor weaves, and fresh slalom patterns every run.';
+          case 'ball':
+            return 'Endless procedural ball lanes with readable floor and ceiling flips so you can train real surface timing without air-jump reliance.';
+          case 'ufo':
+            return 'Endless procedural UFO gardens with forgiving hop ladders, wide catch platforms, and reshuffled rhythm patterns every run.';
+          case 'robot':
+            return 'Endless procedural robot vaults with stair climbs, pad launches, and roomy hold-jumps that keep changing each run.';
+          case 'wave':
+            return 'Endless procedural wave ribbons with no kill-floor underneath, wider tracing corridors, and new gate patterns every run.';
+          case 'cube':
+          default:
+            return 'Endless procedural cube drills with ramps, stairs, pads, and orb strings that reshuffle every run.';
+        }
+      }
+
+      function isEndlessTrainingLevel(level = state.level) {
+        return !!(level && level.training && level.endless);
+      }
+
+      function formatDistance(distance) {
+        return `${Math.max(0, Math.floor(distance || 0))}m`;
+      }
+
+      function distanceForX(x) {
+        return Math.max(0, Math.floor((x - 160) / TRAINING_DISTANCE_SCALE));
+      }
+
+      function trainingGoalForDistance(distance) {
+        return Math.max(
+          TRAINING_DISTANCE_SPLIT,
+          Math.ceil(Math.max(1, distance || 0) / TRAINING_DISTANCE_SPLIT) * TRAINING_DISTANCE_SPLIT,
+        );
+      }
+
+      function trainingCardMetrics(record) {
+        const bestDistance = Math.max(0, Math.floor(record?.bestDistance || 0));
+        const lastDistance = Math.max(0, Math.floor(record?.lastDistance || 0));
+        const goalDistance = trainingGoalForDistance(Math.max(bestDistance, lastDistance));
+        return {
+          bestDistance,
+          lastDistance,
+          goalDistance,
+          fillWidth: `${((bestDistance / goalDistance) * 100).toFixed(1)}%`,
+          markerStyle: record?.lastOutcome
+            ? `left:${((lastDistance / goalDistance) * 100).toFixed(1)}%;`
+            : 'left:0%; opacity:0;',
+        };
+      }
+
+      function trainingCheckpointY(form = 'cube') {
+        switch (form) {
+          case 'ship':
+            return 420;
+          case 'wave':
+            return 430;
+          case 'ufo':
+            return 560;
+          default:
+            return FLOOR_Y - PLAYER_BASE_SIZE;
+        }
+      }
+
+      function stripTrainingChunk(level, builder) {
+        const focus = level.focusForm || 'cube';
+        builder.messages = [];
+        builder.portals = builder.portals.filter(portal => portal.portal !== focus && portal.portal !== 'cube');
+        if (focus === 'wave') {
+          builder.solids = builder.solids.filter(solid => solid.tag !== 'floor');
+        }
+      }
+
+      function mergeTrainingBuilder(level, builder) {
+        level.solids.push(...builder.solids);
+        level.hazards.push(...builder.hazards);
+        level.portals.push(...builder.portals);
+        level.pickups.push(...builder.pickups);
+        level.messages.push(...builder.messages);
+        level.checkpoints.push(...builder.checkpoints);
+        level.shardCount += builder.shardCount;
+        level.length = Math.max(level.length, builder.length + 1200);
+      }
+
+      function trainingChunkDifficulty(level) {
+        const focus = level.focusForm || 'cube';
+        const idx = level.generator?.chunkIndex || 0;
+        if (focus === 'cube' || focus === 'robot') {
+          return Math.min(2, Math.floor(idx / 5));
+        }
+        if (focus === 'ufo') {
+          return Math.min(1, Math.floor(idx / 5));
+        }
+        return Math.min(1, Math.floor(idx / 6));
+      }
+
+      function addGeneratedTrainingChunk(level) {
+        const focus = level.focusForm || 'cube';
+        const startX = level.generator.nextX;
+        const chunkSeed = (((level.runSeed || level.seed || 1) + (level.generator.chunkIndex + 1) * 2654435761) ^ (level.seed || 0)) >>> 0;
+        const rand = seeded(chunkSeed);
+        const difficulty = trainingChunkDifficulty(level);
+        const builder = new LevelBuilder({ id: `${level.id}-chunk-${level.generator.chunkIndex}` });
+        builder.length = startX;
+        let endX = startX + 1400;
+
+        if (focus === 'cube') {
+          const options = [addRampRun, addAutoStairs, addCubeStairSprint, addPadLeap, addOrbChain];
+          const fn = options[Math.floor(rand() * options.length)];
+          endX = fn(builder, startX, difficulty);
+        } else if (focus === 'ship') {
+          const options = [
+            () => addShipTunnel(builder, startX, Math.min(1, difficulty), 1760 + Math.floor(rand() * 220)),
+            () => addShipWeave(builder, startX, Math.min(1, difficulty), 1800 + Math.floor(rand() * 180)),
+            () => addShipReef(builder, startX, Math.min(1, difficulty), 1760 + Math.floor(rand() * 180)),
+          ];
+          endX = options[Math.floor(rand() * options.length)]();
+        } else if (focus === 'ball') {
+          const options = [
+            () => addBallRun(builder, startX, Math.min(1, difficulty), 1500 + Math.floor(rand() * 180)),
+            () => addBallChicane(builder, startX, Math.min(1, difficulty), 1480 + Math.floor(rand() * 160)),
+          ];
+          endX = options[Math.floor(rand() * options.length)]();
+        } else if (focus === 'ufo') {
+          const options = [
+            () => addUfoRun(builder, startX, Math.min(1, difficulty), 1640 + Math.floor(rand() * 180)),
+            () => addUfoAtrium(builder, startX, Math.min(1, difficulty)),
+          ];
+          endX = options[Math.floor(rand() * options.length)]();
+        } else if (focus === 'robot') {
+          const options = [
+            () => addRobotClimb(builder, startX, Math.min(2, difficulty)),
+            () => addRobotVault(builder, startX, Math.min(1, difficulty)),
+          ];
+          endX = options[Math.floor(rand() * options.length)]();
+        } else if (focus === 'wave') {
+          const options = [
+            () => addWaveTunnel(builder, startX, Math.min(1, difficulty), 1560 + Math.floor(rand() * 160)),
+            () => addWaveNeedles(builder, startX, Math.min(1, difficulty), 1520 + Math.floor(rand() * 140)),
+          ];
+          endX = options[Math.floor(rand() * options.length)]();
+        }
+
+        if (level.generator.chunkIndex > 0 && (level.generator.chunkIndex + 1) % 2 === 0) {
+          const checkpointX = startX + Math.max(240, Math.floor((endX - startX) * 0.58));
+          builder.checkpoint(checkpointX, trainingCheckpointY(focus));
+        }
+
+        stripTrainingChunk(level, builder);
+        mergeTrainingBuilder(level, builder);
+        level.generator.chunkIndex += 1;
+        level.generator.nextX = Math.max(startX + 860, endX - 60);
+        level.length = Math.max(level.length, level.generator.nextX + 1800);
+      }
+
+      function ensureTrainingGenerated(level, targetX) {
+        if (!level || !level.generator || !level.endless) return;
+        while (level.generator.nextX < targetX) {
+          addGeneratedTrainingChunk(level);
+        }
+      }
+
+      function endlessTrainingEntry(level, builder, startX) {
+        const focus = level.focusForm || 'cube';
+        builder.message(startX + 120, 560, `TRAINING • ${trainingFormName(focus).toUpperCase()} • ENDLESS`);
+        if (focus === 'cube') {
+          builder.floor(startX, 360);
+          return startX + 300;
+        }
+        if (focus === 'ship') {
+          builder.floor(startX, 420);
+          builder.roof(startX, 420, 190);
+          builder.portal(startX + 86, 0, 'ship', floorPortalExtra({ entryY: 392, label: 'SHIP' }));
+          return startX + 360;
+        }
+        if (focus === 'wave') {
+          builder.floor(startX, 220);
+          builder.roof(startX, 420, 190);
+          builder.block(startX + 260, 690, 160, GAME_H - 690, 'waveLow');
+          builder.portal(startX + 86, 0, 'wave', tallPortalExtra(192, 624, { entryY: 392, label: 'WAVE' }));
+          return startX + 360;
+        }
+        if (focus === 'ufo') {
+          builder.floor(startX, 420);
+          builder.portal(startX + 86, 0, 'ufo', tallPortalExtra(188, 624, { entryY: 520, label: 'UFO' }));
+          return startX + 360;
+        }
+        if (focus === 'ball') {
+          builder.floor(startX, 420);
+          builder.roof(startX, 420, 180);
+          builder.portal(startX + 86, 0, 'ball', floorPortalExtra({ entryY: FLOOR_Y - 42, label: 'BALL' }));
+          return startX + 360;
+        }
+        builder.floor(startX, 420);
+        builder.portal(startX + 86, 0, 'robot', floorPortalExtra({ entryY: FLOOR_Y - 42, label: 'ROBOT' }));
+        return startX + 360;
+      }
+
+      function buildProceduralTrainingLevel(template, preview = false) {
+        const level = {
+          ...template,
+          description: endlessTrainingDescription(template),
+          training: true,
+          endless: true,
+          procedural: true,
+          finishGate: null,
+          solids: [],
+          hazards: [],
+          portals: [],
+          pickups: [],
+          messages: [],
+          checkpoints: [],
+          shardCount: 0,
+          length: 2400,
+          runSeed: preview
+            ? ((((template.seed || 1) * 1103515245) ^ 0x9e3779b9) >>> 0)
+            : ((((template.seed || 1) * 1103515245) ^ (Date.now() >>> 0) ^ ((Math.random() * 0xffffffff) >>> 0)) >>> 0),
+          generator: {
+            nextX: 0,
+            chunkIndex: 0,
+            preview,
+          },
+        };
+
+        const builder = new LevelBuilder({ id: `${template.id}-entry` });
+        builder.length = 0;
+        const startX = addCleanSpawn(builder, 0, 620, 150);
+        level.generator.nextX = endlessTrainingEntry(level, builder, startX);
+        level.solids = builder.solids;
+        level.hazards = builder.hazards;
+        level.portals = builder.portals;
+        level.pickups = builder.pickups;
+        level.messages = builder.messages;
+        level.checkpoints = builder.checkpoints;
+        level.shardCount = builder.shardCount;
+        level.length = Math.max(builder.length, level.generator.nextX + 1800);
+        ensureTrainingGenerated(level, preview ? TRAINING_PREVIEW_LENGTH : level.generator.nextX + TRAINING_GENERATION_AHEAD);
+        return level;
+      }
+
+      trainingLevels.forEach(level => {
+        level.endless = true;
+        level.description = endlessTrainingDescription(level);
+      });
+
+const difficulties = {
+  chill: {
+    id: 'chill',
+    name: 'Chill',
+    speedMult: 0.92,
+    gravityMult: 0.95,
+    coyote: 0.12,
+    jumpBuffer: 0.16,
+    dashDuration: 0.24,
+    size: 38,
+    padMult: 1.1,
+  },
+  standard: {
+    id: 'standard',
+    name: 'Standard',
+    speedMult: 1,
+    gravityMult: 1,
+    coyote: 0.09,
+    jumpBuffer: 0.14,
+    dashDuration: 0.22,
+    size: 40,
+    padMult: 1.05,
+  },
+  overclock: {
+    id: 'overclock',
+    name: 'Overclock',
+    speedMult: 1.12,
+    gravityMult: 1.06,
+    coyote: 0.07,
+    jumpBuffer: 0.11,
+    dashDuration: 0.2,
+    size: 42,
+    padMult: 1.03,
+  },
+};
+
+      const LANDING_FORMS = new Set(['cube', 'ball', 'ufo', 'robot']);
+      const FORM_LABELS = { cube: 'Cube', ship: 'Ship', ball: 'Ball', ufo: 'UFO', wave: 'Wave', robot: 'Robot' };
+
+      function formLabel(form) {
+        return FORM_LABELS[form] || form;
+      }
+
+      function blankRecord() {
+        return {
+          bestTime: null,
+          bestShards: 0,
+          clears: 0,
+          bestDeaths: null,
+          bestProgress: 0,
+          lastProgress: 0,
+          lastOutcome: '',
+          bestDistance: 0,
+          lastDistance: 0,
+          bestRunTime: 0,
+          lastRunTime: 0,
+        };
+      }
+
+      function getLevelCollection(set = 'campaign') {
+        return set === 'training' ? trainingLevels : levels;
+      }
+
+      function getSelectedIndexForSet(set = 'campaign') {
+        return set === 'training' ? state.selectedTrainingIndex : state.selectedLevelIndex;
+      }
+
+      function setSelectedIndexForSet(set = 'campaign', index = 0, shouldPersist = false) {
+        const list = getLevelCollection(set);
+        const clamped = clamp(index, 0, Math.max(0, list.length - 1));
+        const selected = list[clamped] || list[0];
+        if (set === 'training') {
+          state.selectedTrainingIndex = clamped;
+          if (selected) state.save.selectedTraining = selected.id;
+        } else {
+          state.selectedLevelIndex = clamped;
+          if (selected) state.save.selectedLevel = selected.id;
+        }
+        if (shouldPersist) persistSave();
+        return clamped;
+      }
+
+      function selectedLevelForSet(set = 'campaign') {
+        const list = getLevelCollection(set);
+        return list[getSelectedIndexForSet(set)] || list[0];
+      }
+
+      function ensureRecord(levelId) {
+        if (!state.save.records[levelId]) state.save.records[levelId] = blankRecord();
+        return state.save.records[levelId];
+      }
+
+      function defaultSave() {
+        const records = {};
+        allLevels.forEach(level => {
+          records[level.id] = blankRecord();
+        });
+        return {
+          selectedLevel: levels[0].id,
+          selectedTraining: trainingLevels[0].id,
+          difficulty: 'standard',
+          practice: false,
+          muted: false,
+          records,
+        };
+      }
+
+      function loadSave() {
+        try {
+          const raw = localStorage.getItem(SAVE_KEY);
+          if (!raw) return defaultSave();
+          const parsed = JSON.parse(raw);
+          const base = defaultSave();
+          const parsedRecords = parsed.records || {};
+          const mergedRecords = {};
+          allLevels.forEach(level => {
+            const existing = parsedRecords[level.id] || {};
+            const merged = {
+              ...base.records[level.id],
+              ...existing,
+            };
+            if ((merged.bestProgress || 0) === 0 && (merged.clears || 0) > 0) {
+              merged.bestProgress = 1;
+              if (!existing.lastProgress) merged.lastProgress = 1;
+              if (!existing.lastOutcome) merged.lastOutcome = 'clear';
+            }
+            mergedRecords[level.id] = merged;
+          });
+          return {
+            ...base,
+            ...parsed,
+            records: mergedRecords,
+          };
+        } catch (err) {
+          console.warn('Failed to load save, resetting.', err);
+          return defaultSave();
+        }
+      }
+
+      function persistSave() {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(state.save));
+      }
+
+      const input = {
+        jumpHeld: false,
+        jumpPressed: false,
+        dashHeld: false,
+        dashPressed: false,
+      };
+
+      const audio = {
+        ctx: null,
+        master: null,
+        started: false,
+        nextBeat: 0,
+      };
+
+      function initAudio() {
+        if (audio.started) return;
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        audio.ctx = new Ctx();
+        audio.master = audio.ctx.createGain();
+        audio.master.gain.value = state.save.muted ? 0 : 0.14;
+        audio.master.connect(audio.ctx.destination);
+        audio.started = true;
+        audio.nextBeat = audio.ctx.currentTime + 0.1;
+      }
+
+      function setMuted(muted) {
+        state.save.muted = muted;
+        if (audio.master) audio.master.gain.value = muted ? 0 : 0.14;
+        els.muteToggle.textContent = `Audio: ${muted ? 'Off' : 'On'}`;
+        persistSave();
+      }
+
+      function playTone(freq = 220, duration = 0.1, type = 'triangle', gainAmount = 0.05, slide = 1) {
+        if (!audio.started || state.save.muted) return;
+        const now = audio.ctx.currentTime;
+        const osc = audio.ctx.createOscillator();
+        const gain = audio.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * slide), now + duration);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(gainAmount, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.connect(gain);
+        gain.connect(audio.master);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      function playNoise(duration = 0.16, gainAmount = 0.05) {
+        if (!audio.started || state.save.muted) return;
+        const buffer = audio.ctx.createBuffer(1, audio.ctx.sampleRate * duration, audio.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        }
+        const source = audio.ctx.createBufferSource();
+        const filter = audio.ctx.createBiquadFilter();
+        const gain = audio.ctx.createGain();
+        filter.type = 'highpass';
+        filter.frequency.value = 800;
+        gain.gain.value = gainAmount;
+        source.buffer = buffer;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(audio.master);
+        source.start();
+      }
+
+      function syncAudioBeat() {
+        if (!audio.started) return;
+        audio.nextBeat = audio.ctx.currentTime + 0.08;
+      }
+
+      const state = {
+        save: loadSave(),
+        scene: 'menu',
+        menuScreen: 'home',
+        levelSet: 'campaign',
+        returnScreen: 'home',
+        selectedLevelIndex: 0,
+        selectedTrainingIndex: 0,
+        level: null,
+        data: null,
+        player: null,
+        stars: [],
+        particles: [],
+        time: 0,
+        runTime: 0,
+        deaths: 0,
+        attempts: 0,
+        shards: 0,
+        checkpoint: null,
+        practice: false,
+        cameraX: 0,
+        cameraY: 0,
+        shake: 0,
+        respawnTimer: 0,
+        accumulator: 0,
+        lastTimestamp: 0,
+        completed: false,
+        resultReady: false,
+      };
+      state.selectedLevelIndex = Math.max(0, levels.findIndex(l => l.id === state.save.selectedLevel));
+      state.selectedTrainingIndex = Math.max(0, trainingLevels.findIndex(l => l.id === state.save.selectedTraining));
+      if (state.selectedTrainingIndex < 0 || !trainingLevels[state.selectedTrainingIndex]) state.selectedTrainingIndex = 0;
+
+      function createStarfield(level) {
+        const rand = seeded(level.seed * 99 + 7);
+        const stars = [];
+        for (let i = 0; i < 220; i++) {
+          stars.push({
+            x: rand() * level.length,
+            y: rand() * 520 + 20,
+            size: rand() * 2.2 + 0.6,
+            layer: rand() * 0.8 + 0.2,
+            twinkle: rand() * Math.PI * 2,
+          });
+        }
+        return stars;
+      }
+
+      function cloneLevel(level) {
+        return {
+          ...level,
+          solids: deepCloneArray(level.solids),
+          hazards: deepCloneArray(level.hazards),
+          portals: deepCloneArray(level.portals),
+          pickups: deepCloneArray(level.pickups),
+          messages: deepCloneArray(level.messages),
+          checkpoints: deepCloneArray(level.checkpoints),
+        };
+      }
+
+      function currentDifficulty() {
+        return difficulties[state.save.difficulty] || difficulties.standard;
+      }
+
+      function progressForX(x, level = state.level) {
+        if (!level) return 0;
+        return clamp((x - 160) / Math.max(1, level.length - 320), 0, 1);
+      }
+
+      function saveRunProgress(outcome = 'death', forcedProgress = null) {
+        if (state.practice || !state.level) return;
+        const record = ensureRecord(state.level.id);
+        if (!record) return;
+
+        if (isEndlessTrainingLevel(state.level)) {
+          const distance = distanceForX((state.player?.x || 160) + (state.player?.w || 0) * 0.5);
+          record.lastDistance = distance;
+          record.bestDistance = Math.max(record.bestDistance || 0, distance);
+          record.lastRunTime = Math.max(0, state.runTime || 0);
+          record.bestRunTime = Math.max(record.bestRunTime || 0, state.runTime || 0);
+          record.bestShards = Math.max(record.bestShards || 0, state.shards || 0);
+          record.lastOutcome = outcome;
+          persistSave();
+          return;
+        }
+
+        const progress = clamp(
+          forcedProgress == null
+            ? progressForX((state.player?.x || 160) + (state.player?.w || 0) * 0.5)
+            : forcedProgress,
+          0,
+          1,
+        );
+        record.lastProgress = progress;
+        record.bestProgress = Math.max(record.bestProgress || 0, progress);
+        record.lastOutcome = outcome;
+        persistSave();
+      }
+
+      function formatProgress(progress) {
+        return progress >= 0.999 ? 'Finish' : `${Math.round(progress * 100)}%`;
+      }
+
+      function finishTriggerRect(level = state.level) {
+        if (!level) return { x: 0, y: 0, w: 0, h: 0 };
+        if (!level.finishGate) {
+          return { x: level.length - 220, y: 120, w: 30, h: FLOOR_Y - 120 };
+        }
+        return {
+          x: level.finishGate.x + level.finishGate.w * 0.44,
+          y: level.finishGate.y,
+          w: Math.max(14, level.finishGate.w * 0.2),
+          h: level.finishGate.h,
+        };
+      }
+
+      function makePlayer() {
+        const diff = currentDifficulty();
+        return {
+          x: 160,
+          y: FLOOR_Y - diff.size,
+          prevX: 160,
+          prevY: FLOOR_Y - diff.size,
+          w: diff.size,
+          h: diff.size,
+          vx: 0,
+          vy: 0,
+          grounded: true,
+          coyote: 0,
+          jumpBuffer: 0,
+          dashCharges: 0,
+          dashTimer: 0,
+          form: 'cube',
+          gravitySign: 1,
+          speedFactor: 1,
+          rotation: 0,
+          alive: true,
+          trail: [],
+          checkpointIndex: -1,
+          robotBoost: 0,
+        };
+      }
+
+      function spawnAtStart() {
+        const list = getLevelCollection(state.levelSet);
+        const selected = list[getSelectedIndexForSet(state.levelSet)] || list[0];
+        state.player = makePlayer();
+        state.checkpoint = null;
+        state.shards = 0;
+        state.runTime = 0;
+        state.respawnTimer = 0;
+        state.completed = false;
+        state.resultReady = false;
+        state.cameraX = 0;
+        state.cameraY = 0;
+        state.data = selected && selected.training && selected.endless
+          ? buildProceduralTrainingLevel(selected, false)
+          : cloneLevel(selected);
+        state.level = state.data;
+        state.stars = createStarfield(state.level);
+        syncAudioBeat();
+      }
+
+      function setMenuPreview(index = getSelectedIndexForSet('campaign'), set = 'campaign') {
+        const list = getLevelCollection(set);
+        const clamped = clamp(index, 0, Math.max(0, list.length - 1));
+        if (set === 'training') {
+          state.selectedTrainingIndex = clamped;
+        } else {
+          state.selectedLevelIndex = clamped;
+        }
+        state.levelSet = set;
+        const selected = list[clamped] || list[0];
+        const preview = set === 'training' && selected?.training && selected?.endless
+          ? buildProceduralTrainingLevel(selected, true)
+          : cloneLevel(selected);
+        state.data = preview;
+        state.level = preview;
+        state.player = null;
+        state.checkpoint = null;
+        state.completed = false;
+        state.resultReady = false;
+        state.respawnTimer = 0;
+        state.shards = 0;
+        state.stars = createStarfield(preview);
+        const previewLimit = Math.max(0, preview.length - (GAME_W - 180));
+        state.cameraX = clamp(state.cameraX || 0, 0, previewLimit);
+        state.cameraY = 0;
+      }
+
+      function syncMenuScreen() {
+        const showHome = state.scene === 'menu' && state.menuScreen === 'home';
+        const showBrowser = state.scene === 'menu' && state.menuScreen === 'browser';
+        const showTraining = state.scene === 'menu' && state.menuScreen === 'training';
+        els.homeOverlay.classList.toggle('hidden', !showHome);
+        els.menuOverlay.classList.toggle('hidden', !showBrowser);
+        els.trainingOverlay.classList.toggle('hidden', !showTraining);
+      }
+
+      function startLevel(index = getSelectedIndexForSet(state.menuScreen === 'training' ? 'training' : 'campaign'), set = (state.menuScreen === 'training' ? 'training' : 'campaign')) {
+        initAudio();
+        setSelectedIndexForSet(set, index, false);
+        state.levelSet = set;
+        state.returnScreen = set === 'training' ? 'training' : (state.menuScreen === 'browser' ? 'browser' : 'home');
+        state.practice = !!state.save.practice;
+        state.attempts += 1;
+        state.deaths = 0;
+        state.particles.length = 0;
+        spawnAtStart();
+        state.scene = 'play';
+        els.homeOverlay.classList.add('hidden');
+        els.menuOverlay.classList.add('hidden');
+        els.trainingOverlay.classList.add('hidden');
+        els.resultOverlay.classList.add('hidden');
+        els.pauseOverlay.classList.add('hidden');
+        els.hud.classList.remove('hidden');
+        els.touchControls.classList.remove('hidden');
+        persistSave();
+      }
+
+      function returnToMenu(screen = 'home') {
+        if ((state.scene === 'play' || state.scene === 'paused') && state.player?.alive && isEndlessTrainingLevel(state.level) && !state.practice) {
+          saveRunProgress('exit');
+        }
+        state.scene = 'menu';
+        state.menuScreen = screen === 'browser' ? 'browser' : screen === 'training' ? 'training' : 'home';
+        const previewSet = state.menuScreen === 'training' ? 'training' : 'campaign';
+        setMenuPreview(getSelectedIndexForSet(previewSet), previewSet);
+        els.resultOverlay.classList.add('hidden');
+        els.pauseOverlay.classList.add('hidden');
+        els.hud.classList.add('hidden');
+        els.touchControls.classList.add('hidden');
+        input.jumpHeld = false;
+        input.dashHeld = false;
+        input.jumpPressed = false;
+        input.dashPressed = false;
+        syncMenuScreen();
+        refreshMenu();
+      }
+
+      function restartLevel(full = true) {
+        if ((state.scene === 'play' || state.scene === 'paused') && state.player?.alive && isEndlessTrainingLevel(state.level) && !state.practice) {
+          saveRunProgress(full ? 'restart' : 'respawn');
+        }
+        if (full) state.attempts += 1;
+        state.particles.length = 0;
+        spawnAtStart();
+        state.scene = 'play';
+        els.resultOverlay.classList.add('hidden');
+        els.pauseOverlay.classList.add('hidden');
+      }
+
+      function recordCheckpoint() {
+        if (!state.practice) return;
+        state.checkpoint = {
+          x: state.player.x,
+          y: state.player.y,
+          vx: state.player.vx,
+          vy: state.player.vy,
+          form: state.player.form,
+          gravitySign: state.player.gravitySign,
+          dashCharges: state.player.dashCharges,
+          speedFactor: state.player.speedFactor,
+          rotation: state.player.rotation,
+          time: state.runTime,
+          shards: state.shards,
+          checkpointIndex: state.player.checkpointIndex,
+          robotBoost: state.player.robotBoost,
+          snapshot: {
+            pickups: state.data.pickups.map(pickup => ({
+              collected: !!pickup.collected,
+              cooldown: pickup.cooldown || 0,
+            })),
+            portals: state.data.portals.map(portal => ({
+              used: !!portal.used,
+            })),
+            checkpoints: state.data.checkpoints.map(cp => ({
+              hit: !!cp.hit,
+            })),
+          },
+        };
+      }
+
+      function respawnFromCheckpoint() {
+        if (!state.practice || !state.checkpoint) {
+          restartLevel(false);
+          return;
+        }
+        if (state.checkpoint.snapshot) {
+          state.data.pickups.forEach((pickup, index) => {
+            const snapshot = state.checkpoint.snapshot.pickups[index];
+            if (!snapshot) return;
+            pickup.collected = snapshot.collected;
+            pickup.cooldown = snapshot.cooldown;
+          });
+          state.data.portals.forEach((portal, index) => {
+            const snapshot = state.checkpoint.snapshot.portals[index];
+            if (!snapshot) return;
+            portal.used = snapshot.used;
+          });
+          state.data.checkpoints.forEach((cp, index) => {
+            const snapshot = state.checkpoint.snapshot.checkpoints[index];
+            if (!snapshot) return;
+            cp.hit = snapshot.hit;
+          });
+        }
+        state.player = {
+          ...makePlayer(),
+          x: state.checkpoint.x,
+          y: state.checkpoint.y,
+          prevX: state.checkpoint.x,
+          prevY: state.checkpoint.y,
+          vx: state.checkpoint.vx,
+          vy: state.checkpoint.vy,
+          form: state.checkpoint.form,
+          gravitySign: state.checkpoint.gravitySign,
+          dashCharges: state.checkpoint.dashCharges,
+          speedFactor: state.checkpoint.speedFactor,
+          rotation: state.checkpoint.rotation,
+          grounded: false,
+          checkpointIndex: state.checkpoint.checkpointIndex,
+          robotBoost: state.checkpoint.robotBoost || 0,
+        };
+        state.runTime = state.checkpoint.time;
+        state.shards = state.checkpoint.shards;
+        state.respawnTimer = 0;
+      }
+
+      function overlapRect(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+
+      function circleRectOverlap(cx, cy, r, rect) {
+        const nearestX = clamp(cx, rect.x, rect.x + rect.w);
+        const nearestY = clamp(cy, rect.y, rect.y + rect.h);
+        const dx = cx - nearestX;
+        const dy = cy - nearestY;
+        return dx * dx + dy * dy <= r * r;
+      }
+
+      function playerRect() {
+        return { x: state.player.x, y: state.player.y, w: state.player.w, h: state.player.h };
+      }
+
+      function nearbyObjects(list, pad = 240) {
+        const left = state.player.x - pad;
+        const right = state.player.x + 1200 + pad;
+        return list.filter(obj => (obj.x + (obj.w || obj.r || 40)) > left && obj.x < right);
+      }
+
+      function isLaserActive(laser) {
+        const beat = state.runTime / (60 / state.level.bpm);
+        const phase = (beat + laser.phase) % laser.period;
+        return phase < laser.activeFor;
+      }
+
+      function solidSupportForPlayer(solid) {
+        const p = state.player;
+        if (solid.shape === 'ramp') {
+          if (p.gravitySign !== 1) return false;
+          if (p.x + p.w <= solid.x + 4 || p.x >= solid.x + solid.w - 4) return false;
+          const footX = clamp(p.x + p.w * 0.72, solid.x + 2, solid.x + solid.w - 2);
+          const surfaceY = rampSurfaceY(solid, footX);
+          return Math.abs((p.y + p.h) - surfaceY) <= 5;
+        }
+        if (p.gravitySign === 1) {
+          return Math.abs((p.y + p.h) - solid.y) <= 3 && p.x + p.w > solid.x + 4 && p.x < solid.x + solid.w - 4;
+        }
+        return Math.abs(p.y - (solid.y + solid.h)) <= 3 && p.x + p.w > solid.x + 4 && p.x < solid.x + solid.w - 4;
+      }
+
+      function emitParticles(x, y, color, count = 10, spread = 1) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 220 * spread + 40;
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: Math.random() * 0.45 + 0.25,
+            maxLife: 0.7,
+            size: Math.random() * 4 + 2,
+            color,
+          });
+        }
+      }
+
+      function die() {
+        if (!state.player.alive || state.completed) return;
+        state.player.alive = false;
+        state.deaths += 1;
+        saveRunProgress('death');
+        state.shake = 18;
+        emitParticles(state.player.x + state.player.w / 2, state.player.y + state.player.h / 2, state.level.theme.hazard, 28, 1.4);
+        playTone(120, 0.26, 'sawtooth', 0.07, 0.55);
+        playNoise(0.22, 0.06);
+        state.respawnTimer = state.practice ? 0.55 : 0.72;
+      }
+
+      function completeLevel() {
+        if (state.completed) return;
+        state.completed = true;
+        state.scene = 'result';
+        els.resultOverlay.classList.remove('hidden');
+        els.hud.classList.add('hidden');
+        els.touchControls.classList.add('hidden');
+        const record = ensureRecord(state.level.id);
+        if (!state.practice) {
+          record.lastProgress = 1;
+          record.bestProgress = 1;
+          record.lastOutcome = 'clear';
+          record.clears += 1;
+          if (record.bestTime === null || state.runTime < record.bestTime) record.bestTime = state.runTime;
+          if (record.bestDeaths === null || state.deaths < record.bestDeaths) record.bestDeaths = state.deaths;
+          record.bestShards = Math.max(record.bestShards, state.shards);
+          persistSave();
+        }
+        const list = getLevelCollection(state.levelSet);
+        const currentIndex = getSelectedIndexForSet(state.levelSet);
+        const nextExists = currentIndex < list.length - 1;
+        const trainingRun = state.levelSet === 'training';
+        els.resultBadge.textContent = state.practice ? (trainingRun ? 'Training practiced' : 'Practice clear') : (trainingRun ? 'Training clear' : 'Level clear');
+        els.resultTitle.textContent = state.practice ? `${state.level.name} practiced` : `${state.level.name} cleared`;
+        els.resultText.textContent = state.practice
+          ? 'Checkpoint route complete. Turn off practice to set a clean record.'
+          : trainingRun
+            ? `You cleared ${state.level.name} on ${currentDifficulty().name}. ${nextExists ? 'The next training route is ready.' : 'You finished every training route.'}`
+            : `You cleared ${state.level.name} on ${currentDifficulty().name}. ${nextExists ? 'The next level is ready.' : 'You cleared the full Neon Pulse set.'}`;
+        els.resultTime.textContent = fmtTime(state.runTime);
+        els.resultDeaths.textContent = String(state.deaths);
+        els.resultShards.textContent = `${state.shards} / ${state.level.shardCount}`;
+        els.nextLevelBtn.textContent = nextExists ? (trainingRun ? 'Next training' : 'Next level') : (trainingRun ? 'Replay training' : 'Replay final level');
+        refreshMenu();
+      }
+
+      function handlePortals() {
+        const p = state.player;
+        const rect = playerRect();
+        for (const portal of nearbyObjects(state.data.portals, 120)) {
+          if (portal.used) continue;
+          const trigger = { x: portal.x - 18, y: portal.y - 20, w: portal.w + 36, h: portal.h + 40 };
+          if (!overlapRect(rect, trigger)) continue;
+          portal.used = true;
+
+          if (['ship', 'cube', 'ball', 'ufo', 'wave', 'robot'].includes(portal.portal)) {
+            p.form = portal.portal;
+            p.grounded = false;
+            p.coyote = 0;
+            p.jumpBuffer = 0;
+            p.robotBoost = 0;
+            if (portal.portal === 'ship') {
+              p.vy *= 0.4;
+            } else if (portal.portal === 'wave') {
+              p.vy = 0;
+              p.trail = [];
+            } else if (portal.portal === 'ball') {
+              p.vy = clamp(p.vy, -720, 720);
+            } else if (portal.portal === 'ufo') {
+              p.vy = clamp(p.vy, -640, 640);
+            } else if (portal.portal === 'robot' || portal.portal === 'cube') {
+              p.vy = clamp(p.vy, -760, 760);
+            }
+            if (portal.entryX != null) {
+              p.x = Math.max(p.x, portal.entryX);
+              p.prevX = p.x;
+            }
+            if (portal.entryY != null) {
+              p.y = clamp(portal.entryY - p.h / 2, 42, FLOOR_Y - p.h - 42);
+              p.prevY = p.y;
+            }
+            const color = portal.portal === 'ship' ? state.level.theme.accent
+              : portal.portal === 'cube' ? state.level.theme.accent2
+              : portal.portal === 'ball' ? '#ffd166'
+              : portal.portal === 'ufo' ? '#73f2ff'
+              : portal.portal === 'wave' ? '#8fffd8'
+              : '#ffb05c';
+            emitParticles(portal.x + portal.w / 2, portal.y + portal.h / 2, color, 18, 1.2);
+            playTone(portal.portal === 'wave' ? 420 : portal.portal === 'ship' ? 240 : 300, 0.11, 'triangle', 0.045, 1.15);
+          } else if (portal.portal === 'gravity') {
+            p.gravitySign *= -1;
+            p.grounded = false;
+            p.coyote = 0;
+            if (portal.entryX != null) {
+              p.x = Math.max(p.x, portal.entryX);
+              p.prevX = p.x;
+            }
+            if (portal.entryY != null) {
+              p.y = clamp(portal.entryY - p.h / 2, 42, FLOOR_Y - p.h - 42);
+              p.prevY = p.y;
+            }
+            emitParticles(portal.x + portal.w / 2, portal.y + portal.h / 2, '#ffffff', 16, 1.1);
+            playTone(320, 0.09, 'square', 0.035, 0.7);
+          } else if (portal.portal === 'speed') {
+            p.speedFactor = portal.factor || 1;
+            if (portal.entryX != null) {
+              p.x = Math.max(p.x, portal.entryX);
+              p.prevX = p.x;
+            }
+            if (portal.entryY != null) {
+              p.y = clamp(portal.entryY - p.h / 2, 42, FLOOR_Y - p.h - 42);
+              p.prevY = p.y;
+            }
+            emitParticles(portal.x + portal.w / 2, portal.y + portal.h / 2, state.level.theme.good, 16, 1.1);
+            playTone(portal.factor > 1 ? 520 : 240, 0.1, 'sine', 0.035, portal.factor > 1 ? 1.25 : 0.8);
+          }
+        }
+      }
+
+      function handlePickups(dt) {
+        const p = state.player;
+        const rect = playerRect();
+        for (const pickup of nearbyObjects(state.data.pickups, 140)) {
+          if (pickup.collected) continue;
+
+          if (pickup.type === 'coin') {
+            if (circleRectOverlap(pickup.x, pickup.y, pickup.r, rect)) {
+              pickup.collected = true;
+              state.shards += 1;
+              emitParticles(pickup.x, pickup.y, '#ffd166', 12, 1.3);
+              playTone(620, 0.12, 'triangle', 0.035, 1.18);
+            }
+            continue;
+          }
+
+          if (pickup.type === 'dash') {
+            if (circleRectOverlap(pickup.x, pickup.y, pickup.r, rect)) {
+              pickup.collected = true;
+              p.dashCharges = Math.max(p.dashCharges, 1);
+              emitParticles(pickup.x, pickup.y, state.level.theme.accent, 16, 1.1);
+              playTone(440, 0.09, 'square', 0.04, 1.3);
+            }
+            continue;
+          }
+
+          if (pickup.type === 'pad') {
+            pickup.cooldown = Math.max(0, (pickup.cooldown || 0) - dt);
+            const padRect = { x: pickup.x, y: pickup.y, w: pickup.w, h: pickup.h };
+            if (pickup.cooldown <= 0 && overlapRect(rect, padRect)) {
+              const padPower = pickup.power * (currentDifficulty().padMult || 1);
+              p.vy = p.gravitySign === 1 ? -padPower : padPower;
+              p.grounded = false;
+              pickup.cooldown = 0.16;
+              emitParticles(p.x + p.w / 2, p.gravitySign === 1 ? p.y + p.h : p.y, pickup.color === 'blue' ? '#73a7ff' : '#ffd166', 14, 1.2);
+              playTone(340, 0.12, 'triangle', 0.05, 1.4);
+            }
+            continue;
+          }
+
+          if (pickup.type === 'gravityPad') {
+            pickup.cooldown = Math.max(0, (pickup.cooldown || 0) - dt);
+            const padRect = { x: pickup.x, y: pickup.y, w: pickup.w, h: pickup.h };
+            if (pickup.cooldown <= 0 && overlapRect(rect, padRect)) {
+              p.gravitySign *= -1;
+              p.vy = 760 * p.gravitySign;
+              p.grounded = false;
+              pickup.cooldown = 0.16;
+              emitParticles(p.x + p.w / 2, p.y + p.h / 2, '#73a7ff', 14, 1.2);
+              playTone(380, 0.1, 'square', 0.045, 0.75);
+            }
+            continue;
+          }
+
+          if (pickup.type === 'orb') {
+            pickup.cooldown = Math.max(0, (pickup.cooldown || 0) - dt);
+            if (pickup.cooldown > 0) continue;
+            if (circleRectOverlap(pickup.x, pickup.y, pickup.r + 6, rect) && (input.jumpPressed || input.jumpHeld || p.jumpBuffer > 0)) {
+              p.vy = p.gravitySign === 1 ? -pickup.power : pickup.power;
+              p.grounded = false;
+              pickup.cooldown = 0.22;
+              emitParticles(pickup.x, pickup.y, pickup.color === 'blue' ? '#73a7ff' : '#ffd166', 18, 1.2);
+              playTone(520, 0.12, 'triangle', 0.05, 1.16);
+            }
+            continue;
+          }
+
+          if (pickup.type === 'gravityOrb') {
+            pickup.cooldown = Math.max(0, (pickup.cooldown || 0) - dt);
+            if (pickup.cooldown > 0) continue;
+            if (circleRectOverlap(pickup.x, pickup.y, pickup.r + 6, rect) && (input.jumpPressed || input.jumpHeld || p.jumpBuffer > 0)) {
+              p.gravitySign *= -1;
+              if (p.form === 'ship') {
+                p.vy *= -0.6;
+              } else if (p.form === 'wave') {
+                p.vy *= -1;
+              } else {
+                p.vy = 760 * p.gravitySign;
+              }
+              p.grounded = false;
+              pickup.cooldown = 0.22;
+              emitParticles(pickup.x, pickup.y, '#73a7ff', 18, 1.2);
+              playTone(360, 0.11, 'square', 0.045, 0.78);
+            }
+          }
+        }
+      }
+
+      function handleCheckpoints() {
+        if (!state.practice) return;
+        const rect = playerRect();
+        state.data.checkpoints.forEach((cp, index) => {
+          if (cp.hit) return;
+          const zone = { x: cp.x, y: cp.y - 80, w: cp.w, h: cp.h };
+          if (overlapRect(rect, zone)) {
+            cp.hit = true;
+            state.player.checkpointIndex = index;
+            recordCheckpoint();
+            emitParticles(cp.x + 24, cp.y, state.level.theme.good, 14, 1.2);
+            playTone(700, 0.1, 'sine', 0.03, 1.05);
+          }
+        });
+      }
+
+      function supportsNow() {
+        return nearbyObjects(state.data.solids, 80).some(s => solidSupportForPlayer(s));
+      }
+
+      function ballSupportWindowNow(pad = 10) {
+        const p = state.player;
+        return nearbyObjects(state.data.solids, 90).some(solid => {
+          if (solid.shape === 'ramp') return false;
+          const overlapX = p.x + p.w > solid.x + 4 && p.x < solid.x + solid.w - 4;
+          if (!overlapX) return false;
+          if (p.gravitySign === 1) {
+            return Math.abs((p.y + p.h) - solid.y) <= pad;
+          }
+          return Math.abs(p.y - (solid.y + solid.h)) <= pad;
+        });
+      }
+
+      function resolveSolidCollision(prevX, prevY) {
+        const p = state.player;
+        const rect = playerRect();
+        const nearbySolids = nearbyObjects(state.data.solids, 90);
+        for (const solid of nearbySolids) {
+          if (!solidBlocksRect(solid, rect)) continue;
+          if (!LANDING_FORMS.has(p.form)) {
+            die();
+            return;
+          }
+
+          if (solid.shape === 'ramp') {
+            if (p.gravitySign !== 1) {
+              die();
+              return;
+            }
+            const footX = clamp(p.x + p.w * 0.72, solid.x + 2, solid.x + solid.w - 2);
+            const surfaceY = rampSurfaceY(solid, footX);
+            const prevBottom = prevY + p.h;
+            if (p.y + p.h >= surfaceY - 8 && prevBottom <= surfaceY + 54 && p.y < solid.y + solid.h) {
+              p.y = surfaceY - p.h;
+              p.vy = 0;
+              p.grounded = true;
+              return;
+            }
+            die();
+            return;
+          }
+
+          if (p.gravitySign === 1) {
+            const prevBottom = prevY + p.h;
+            const stepLift = prevBottom - solid.y;
+            if (p.vx >= 0 && prevX + p.w <= solid.x + 18 && stepLift >= 0 && stepLift <= 54) {
+              const candidateY = solid.y - p.h;
+              const stepRect = { x: p.x, y: candidateY, w: p.w, h: p.h };
+              const blocked = nearbySolids.some(other => other !== solid && solidBlocksRect(other, stepRect));
+              if (!blocked) {
+                p.y = candidateY;
+                p.vy = 0;
+                p.grounded = true;
+                return;
+              }
+            }
+            if (p.vy >= 0 && prevBottom <= solid.y + 14) {
+              p.y = solid.y - p.h;
+              p.vy = 0;
+              p.grounded = true;
+              return;
+            }
+          } else {
+            const prevTop = prevY;
+            if (p.vy <= 0 && prevTop >= solid.y + solid.h - 14) {
+              p.y = solid.y + solid.h;
+              p.vy = 0;
+              p.grounded = true;
+              return;
+            }
+          }
+          die();
+          return;
+        }
+      }
+
+      function handleHazards() {
+        const rect = playerRect();
+        for (const hazard of nearbyObjects(state.data.hazards, 120)) {
+          if (hazard.type === 'spike') {
+            const inset = 8;
+            const hRect = { x: hazard.x + inset / 2, y: hazard.y + inset / 2, w: hazard.w - inset, h: hazard.h - inset };
+            if (overlapRect(rect, hRect)) {
+              die();
+              return;
+            }
+          } else if (hazard.type === 'saw') {
+            if (circleRectOverlap(hazard.x, hazard.y, hazard.r, rect)) {
+              die();
+              return;
+            }
+          } else if (hazard.type === 'laser') {
+            if (!isLaserActive(hazard)) continue;
+            const lRect = { x: hazard.x, y: hazard.y, w: hazard.w, h: hazard.h };
+            if (overlapRect(rect, lRect)) {
+              die();
+              return;
+            }
+          }
+        }
+      }
+
+      function updatePlayer(dt) {
+        const p = state.player;
+        const diff = currentDifficulty();
+        const gravity = 2580 * diff.gravityMult;
+        const speed = state.level.baseSpeed * diff.speedMult * p.speedFactor;
+        const ballGravityScale = diff.id === 'chill' ? 0.84 : diff.id === 'standard' ? 0.89 : 0.93;
+        const ballFlipImpulse = diff.id === 'chill' ? 700 : diff.id === 'standard' ? 720 : 735;
+        const ballContactWindow = diff.id === 'chill' ? 12 : diff.id === 'standard' ? 10 : 8;
+        const ballSpeedScale = diff.id === 'chill' ? 0.9 : diff.id === 'standard' ? 0.93 : 0.95;
+        const ballJumpBuffer = diff.jumpBuffer + (diff.id === 'chill' ? 0.09 : diff.id === 'standard' ? 0.07 : 0.05);
+
+        p.prevX = p.x;
+        p.prevY = p.y;
+        p.jumpBuffer = Math.max(0, p.jumpBuffer - dt);
+        p.robotBoost = Math.max(0, p.robotBoost - dt);
+        if (input.jumpPressed) p.jumpBuffer = p.form === 'ball' ? ballJumpBuffer : diff.jumpBuffer;
+        if (p.coyote > 0) p.coyote -= dt;
+
+        if (LANDING_FORMS.has(p.form) && p.grounded && !supportsNow()) {
+          p.grounded = false;
+          p.coyote = diff.coyote;
+        }
+
+        if (p.form === 'cube') {
+          const canJump = p.grounded || p.coyote > 0;
+          if (p.jumpBuffer > 0 && canJump) {
+            p.vy = p.gravitySign === 1 ? -1080 : 1080;
+            p.grounded = false;
+            p.coyote = 0;
+            p.jumpBuffer = 0;
+            playTone(310, 0.09, 'triangle', 0.045, 1.25);
+            emitParticles(p.x + p.w / 2, p.gravitySign === 1 ? p.y + p.h : p.y, state.level.theme.accent, 10, 0.9);
+          }
+          if (input.dashPressed && p.dashCharges > 0 && p.dashTimer <= 0) {
+            p.dashCharges -= 1;
+            p.dashTimer = diff.dashDuration;
+            p.vy *= 0.35;
+            playTone(180, 0.11, 'sawtooth', 0.05, 1.9);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, state.level.theme.accent2, 18, 1.4);
+          }
+          const gravityBoost = input.jumpHeld && ((p.gravitySign === 1 && p.vy < 0) || (p.gravitySign === -1 && p.vy > 0)) ? 0.72 : 1;
+          if (p.dashTimer > 0) {
+            p.dashTimer -= dt;
+          } else {
+            p.vy += gravity * gravityBoost * p.gravitySign * dt;
+          }
+        } else if (p.form === 'robot') {
+          const canJump = p.grounded || p.coyote > 0;
+          if (p.jumpBuffer > 0 && canJump) {
+            p.vy = p.gravitySign === 1 ? -980 : 980;
+            p.grounded = false;
+            p.coyote = 0;
+            p.jumpBuffer = 0;
+            p.robotBoost = 0.18;
+            playTone(350, 0.09, 'triangle', 0.045, 1.28);
+            emitParticles(p.x + p.w / 2, p.gravitySign === 1 ? p.y + p.h : p.y, '#ffb05c', 12, 1.0);
+          }
+          if (input.jumpHeld && p.robotBoost > 0) {
+            p.vy += -2200 * p.gravitySign * dt;
+          }
+          if (input.dashPressed && p.dashCharges > 0 && p.dashTimer <= 0) {
+            p.dashCharges -= 1;
+            p.dashTimer = diff.dashDuration;
+            p.vy *= 0.4;
+            playTone(200, 0.1, 'sawtooth', 0.05, 1.7);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, '#ffb05c', 18, 1.3);
+          }
+          const gravityBoost = input.jumpHeld && ((p.gravitySign === 1 && p.vy < 0) || (p.gravitySign === -1 && p.vy > 0)) ? 0.78 : 1;
+          if (p.dashTimer > 0) {
+            p.dashTimer -= dt;
+          } else {
+            p.vy += gravity * gravityBoost * p.gravitySign * dt;
+          }
+        } else if (p.form === 'ball') {
+          const canFlip = p.grounded || supportsNow() || ballSupportWindowNow(ballContactWindow);
+          if (p.jumpBuffer > 0 && canFlip) {
+            p.gravitySign *= -1;
+            p.vy = ballFlipImpulse * p.gravitySign;
+            p.grounded = false;
+            p.coyote = 0;
+            p.jumpBuffer = 0;
+            playTone(280, 0.09, 'square', 0.04, 0.82);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, '#ffd166', 12, 1.0);
+          }
+          if (input.dashPressed && p.dashCharges > 0 && p.dashTimer <= 0) {
+            p.dashCharges -= 1;
+            p.dashTimer = diff.dashDuration * 0.95;
+            p.vy *= 0.4;
+            playTone(200, 0.1, 'sawtooth', 0.05, 1.8);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, '#ffd166', 16, 1.25);
+          }
+          if (p.dashTimer > 0) {
+            p.dashTimer -= dt;
+          } else {
+            p.vy += gravity * ballGravityScale * p.gravitySign * dt;
+          }
+          p.vy = clamp(p.vy, -840, 840);
+        } else if (p.form === 'ufo') {
+          if (input.jumpPressed) {
+            p.vy = p.gravitySign === 1 ? -880 : 880;
+            p.grounded = false;
+            p.coyote = 0;
+            p.jumpBuffer = 0;
+            playTone(420, 0.08, 'triangle', 0.04, 1.06);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, '#73f2ff', 10, 0.9);
+          }
+          if (input.dashPressed && p.dashCharges > 0 && p.dashTimer <= 0) {
+            p.dashCharges -= 1;
+            p.dashTimer = diff.dashDuration * 0.9;
+            playTone(220, 0.1, 'square', 0.04, 1.6);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, '#73f2ff', 14, 1.25);
+          }
+          if (p.dashTimer > 0) {
+            p.dashTimer -= dt;
+          } else {
+            p.vy += 2080 * diff.gravityMult * p.gravitySign * dt;
+          }
+          p.vy = clamp(p.vy, -820, 820);
+        } else if (p.form === 'ship') {
+          if (input.dashPressed && p.dashCharges > 0 && p.dashTimer <= 0) {
+            p.dashCharges -= 1;
+            p.dashTimer = diff.dashDuration * 0.9;
+            playTone(220, 0.1, 'square', 0.04, 1.6);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, state.level.theme.accent, 14, 1.25);
+          }
+          const thrust = input.jumpHeld ? -2600 * p.gravitySign : 0;
+          p.vy += (1700 * p.gravitySign + thrust) * dt;
+          p.vy = clamp(p.vy, -760, 760);
+          if (p.dashTimer > 0) {
+            p.dashTimer -= dt;
+            p.vy *= 0.94;
+          }
+        } else if (p.form === 'wave') {
+          if (input.dashPressed && p.dashCharges > 0 && p.dashTimer <= 0) {
+            p.dashCharges -= 1;
+            p.dashTimer = diff.dashDuration * 0.85;
+            playTone(260, 0.09, 'sawtooth', 0.045, 1.5);
+            emitParticles(p.x + p.w / 2, p.y + p.h / 2, '#8fffd8', 14, 1.2);
+          }
+          const waveSpeed = speed * 1.04 * (p.dashTimer > 0 ? 1.18 : 1);
+          p.vy = (input.jumpHeld ? -waveSpeed : waveSpeed) * p.gravitySign;
+          if (p.dashTimer > 0) p.dashTimer -= dt;
+        }
+
+        const dashMult = p.dashTimer > 0 ? 2.1 : 1;
+        const formSpeedScale = p.form === 'ball' ? ballSpeedScale : 1;
+        p.vx = speed * dashMult * formSpeedScale;
+        p.x += p.vx * dt;
+        resolveSolidCollision(p.prevX, p.prevY);
+        if (!p.alive) return;
+        p.y += p.vy * dt;
+        p.grounded = false;
+        resolveSolidCollision(p.prevX, p.prevY);
+        if (!p.alive) return;
+
+        if (LANDING_FORMS.has(p.form) && supportsNow() && Math.abs(p.vy) < 30) {
+          p.grounded = true;
+        }
+
+        if (p.form === 'cube') {
+          p.rotation += (p.dashTimer > 0 ? 12 : p.grounded ? 0 : 7.5) * dt * 60;
+          p.trail.length = 0;
+        } else if (p.form === 'robot') {
+          p.rotation += (p.dashTimer > 0 ? 13 : p.grounded ? 0 : 6.5) * dt * 60;
+          p.trail.length = 0;
+        } else if (p.form === 'ball') {
+          p.rotation += (speed / 180) * dt * 60 * (p.gravitySign === 1 ? 1 : -1);
+          p.trail.length = 0;
+        } else if (p.form === 'ufo') {
+          p.rotation = clamp(p.vy / 900, -0.45, 0.45);
+          p.trail.length = 0;
+        } else if (p.form === 'ship') {
+          p.rotation = Math.atan2(p.vy, speed * 0.9);
+          p.trail.length = 0;
+        } else if (p.form === 'wave') {
+          p.rotation = Math.atan2(p.vy, p.vx);
+          p.trail.push({ x: p.x + p.w / 2, y: p.y + p.h / 2, life: 0.24, maxLife: 0.24 });
+          p.trail = p.trail.filter(node => (node.life -= dt) > 0);
+        }
+
+        if (p.y > GAME_H + 140 || p.y + p.h < -140) {
+          die();
+          return;
+        }
+
+        handlePortals();
+        handlePickups(dt);
+        handleCheckpoints();
+        handleHazards();
+        if (!p.alive) return;
+        if (!isEndlessTrainingLevel(state.level) && (overlapRect(playerRect(), finishTriggerRect()) || p.x > state.level.length - 80)) {
+          completeLevel();
+        }
+      }
+
+      function updateParticles(dt) {
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.life -= dt;
+          if (p.life <= 0) {
+            state.particles.splice(i, 1);
+            continue;
+          }
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.98;
+          p.vy = p.vy * 0.98 + 260 * dt;
+        }
+      }
+
+      function updateAudioBeat() {
+        if (!audio.started || state.save.muted || state.scene !== 'play' || !state.level) return;
+        const interval = 60 / state.level.bpm;
+        while (audio.nextBeat < audio.ctx.currentTime + 0.05) {
+          playTone(72, 0.13, 'triangle', 0.02, 1);
+          playTone(144, 0.09, 'sine', 0.012, 1.01);
+          audio.nextBeat += interval;
+        }
+      }
+
+      function updateGame(dt) {
+        state.time += dt;
+        updateParticles(dt);
+        if (state.shake > 0) state.shake = Math.max(0, state.shake - 45 * dt);
+
+        if (state.scene !== 'play') {
+          if (state.scene === 'menu' && state.level) {
+            state.runTime += dt * 0.72;
+            const previewLimit = Math.max(0, state.level.length - (GAME_W - 180));
+            if (previewLimit > 0) {
+              state.cameraX += dt * Math.max(180, state.level.baseSpeed * 0.46);
+              if (state.cameraX > previewLimit) state.cameraX = 0;
+            } else {
+              state.cameraX = 0;
+            }
+            state.cameraY = 0;
+          }
+          updateAudioBeat();
+          return;
+        }
+
+        if (state.respawnTimer > 0) {
+          state.respawnTimer -= dt;
+          if (state.respawnTimer <= 0) {
+            if (state.practice && state.checkpoint) {
+              respawnFromCheckpoint();
+            } else {
+              restartLevel(false);
+            }
+          }
+        } else if (state.player && state.player.alive) {
+          state.runTime += dt;
+          if (isEndlessTrainingLevel(state.level)) {
+            ensureTrainingGenerated(state.level, state.player.x + TRAINING_GENERATION_AHEAD);
+          }
+          updatePlayer(dt);
+          updateAudioBeat();
+        }
+
+        if (state.player) {
+          state.cameraX = lerp(state.cameraX, Math.max(0, state.player.x - 300), 0.12);
+          state.cameraY = lerp(state.cameraY, 0, 0.08);
+        }
+      }
+
+      function drawBackground() {
+        if (!state.level) {
+          ctx.clearRect(0, 0, GAME_W, GAME_H);
+          return;
+        }
+        const theme = state.level.theme;
+        const beat = state.runTime / (60 / state.level.bpm || 1);
+        const pulse = 0.5 + 0.5 * Math.sin(beat * Math.PI * 2);
+        const g = ctx.createLinearGradient(0, 0, 0, GAME_H);
+        g.addColorStop(0, theme.bgA);
+        g.addColorStop(1, theme.bgB);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, GAME_W, GAME_H);
+
+        const shakeX = (Math.random() - 0.5) * state.shake;
+        const shakeY = (Math.random() - 0.5) * state.shake;
+        ctx.save();
+        ctx.translate(shakeX, shakeY);
+
+        ctx.globalAlpha = 0.14 + pulse * 0.08;
+        for (let i = 0; i < 8; i++) {
+          const y = 100 + i * 70 + Math.sin(state.time * 0.9 + i) * 8;
+          ctx.fillStyle = i % 2 === 0 ? theme.accent : theme.accent2;
+          ctx.fillRect(0, y, GAME_W, 1);
+        }
+        ctx.globalAlpha = 1;
+
+        state.stars.forEach(star => {
+          const screenX = (star.x - state.cameraX * star.layer) % (state.level.length || 1);
+          const x = ((screenX % (GAME_W + 200)) + GAME_W + 200) % (GAME_W + 200) - 100;
+          const alpha = 0.28 + 0.52 * (0.5 + 0.5 * Math.sin(state.time * 1.4 + star.twinkle));
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(x, star.y, star.size, star.size);
+        });
+        ctx.globalAlpha = 1;
+
+        for (let layer = 0; layer < 3; layer++) {
+          const baseY = 670 + layer * 36;
+          const amp = 22 + layer * 18;
+          const speed = 0.12 + layer * 0.05;
+          ctx.beginPath();
+          ctx.moveTo(-60, GAME_H);
+          for (let x = -60; x <= GAME_W + 60; x += 60) {
+            const wx = x + state.cameraX * speed;
+            const y = baseY + Math.sin(wx * 0.003 + layer * 1.7) * amp + Math.cos(wx * 0.005 + layer) * 12;
+            ctx.lineTo(x, y);
+          }
+          ctx.lineTo(GAME_W + 60, GAME_H);
+          ctx.closePath();
+          ctx.fillStyle = layer === 0 ? 'rgba(255,255,255,0.03)' : layer === 1 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.07)';
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function worldX(x) {
+        return x - state.cameraX;
+      }
+
+      function visible(obj, pad = 180) {
+        const x = worldX(obj.x);
+        const w = obj.w || obj.r || 60;
+        return x + w > -pad && x < GAME_W + pad;
+      }
+
+      function drawGlowRect(x, y, w, h, color, glow = 18, alpha = 1) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = glow;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, w, h);
+        ctx.restore();
+      }
+
+      function roundedRectPath(x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        ctx.lineTo(x + radius, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+      }
+
+      function drawWorld() {
+        if (!state.level) return;
+        const theme = state.level.theme;
+        const beatPulse = 0.45 + 0.55 * Math.sin(state.runTime / (60 / state.level.bpm || 1) * Math.PI * 2);
+
+        ctx.save();
+        const shakeX = (Math.random() - 0.5) * state.shake;
+        const shakeY = (Math.random() - 0.5) * state.shake;
+        ctx.translate(shakeX, shakeY);
+
+        for (const solid of state.level.solids) {
+          if (!visible(solid)) continue;
+          const x = worldX(solid.x);
+          const grad = ctx.createLinearGradient(x, solid.y, x, solid.y + solid.h);
+          grad.addColorStop(0, theme.floor);
+          grad.addColorStop(1, 'rgba(9,12,20,0.95)');
+          ctx.fillStyle = grad;
+
+          if (solid.shape === 'ramp') {
+            ctx.beginPath();
+            if (solid.dir === 'upLeft') {
+              ctx.moveTo(x, solid.y);
+              ctx.lineTo(x, solid.y + solid.h);
+              ctx.lineTo(x + solid.w, solid.y + solid.h);
+            } else {
+              ctx.moveTo(x, solid.y + solid.h);
+              ctx.lineTo(x + solid.w, solid.y + solid.h);
+              ctx.lineTo(x + solid.w, solid.y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            if (solid.dir === 'upLeft') {
+              ctx.moveTo(x, solid.y);
+              ctx.lineTo(x + solid.w, solid.y + solid.h);
+            } else {
+              ctx.moveTo(x, solid.y + solid.h);
+              ctx.lineTo(x + solid.w, solid.y);
+            }
+            ctx.stroke();
+            ctx.save();
+            ctx.strokeStyle = theme.accent;
+            ctx.globalAlpha = 0.42 + beatPulse * 0.18;
+            ctx.shadowColor = theme.accent;
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            if (solid.dir === 'upLeft') {
+              ctx.moveTo(x, solid.y);
+              ctx.lineTo(x + solid.w, solid.y + solid.h);
+            } else {
+              ctx.moveTo(x, solid.y + solid.h);
+              ctx.lineTo(x + solid.w, solid.y);
+            }
+            ctx.stroke();
+            ctx.restore();
+            continue;
+          }
+
+          ctx.fillRect(x, solid.y, solid.w, solid.h);
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillRect(x, solid.tag === 'roof' ? solid.y + solid.h - 3 : solid.y, solid.w, 3);
+          if (solid.tag === 'roof') {
+            drawGlowRect(x, solid.y + solid.h - 2, solid.w, 2, theme.accent2, 14, 0.35 + beatPulse * 0.18);
+          } else {
+            drawGlowRect(x, solid.y, solid.w, 2, theme.accent, 14, 0.35 + beatPulse * 0.18);
+          }
+        }
+
+        for (const portal of state.level.portals) {
+          if (!visible(portal)) continue;
+          const x = worldX(portal.x);
+          const cx = x + portal.w / 2;
+          const cy = portal.y + portal.h / 2;
+          const portalColor = portal.portal === 'gravity' ? '#ffffff'
+            : portal.portal === 'ship' ? theme.accent
+            : portal.portal === 'cube' ? theme.accent2
+            : portal.portal === 'ball' ? '#ffd166'
+            : portal.portal === 'ufo' ? '#73f2ff'
+            : portal.portal === 'wave' ? '#8fffd8'
+            : portal.portal === 'robot' ? '#ffb05c'
+            : theme.good;
+          const gradient = ctx.createRadialGradient(cx, cy, 10, cx, cy, portal.w * 0.7);
+          gradient.addColorStop(0, 'rgba(255,255,255,0.16)');
+          gradient.addColorStop(1, 'rgba(255,255,255,0.0)');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(x - 20, portal.y - 20, portal.w + 40, portal.h + 40);
+          ctx.strokeStyle = portalColor;
+          ctx.lineWidth = 3;
+          ctx.shadowColor = portalColor;
+          ctx.shadowBlur = 20;
+          roundedRectPath(x, portal.y, portal.w, portal.h, 26);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+          ctx.lineWidth = 1.5;
+          roundedRectPath(x + 8, portal.y + 8, portal.w - 16, portal.h - 16, 22);
+          ctx.stroke();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '800 18px Inter, Segoe UI, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText((portal.label || formLabel(portal.portal)).toUpperCase(), cx, cy + 6);
+          ctx.textAlign = 'left';
+        }
+
+        for (const pickup of state.level.pickups) {
+          if (!visible(pickup) || pickup.collected) continue;
+          if (pickup.type === 'coin') {
+            const x = worldX(pickup.x);
+            const y = pickup.y;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.shadowColor = '#ffd166';
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = '#ffd166';
+            ctx.beginPath();
+            ctx.arc(0, 0, pickup.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#8d5a00';
+            ctx.beginPath();
+            ctx.arc(0, 0, pickup.r * 0.55, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(-4, -6, pickup.r * 0.24, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          } else if (pickup.type === 'dash') {
+            const x = worldX(pickup.x);
+            const y = pickup.y;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.shadowColor = state.level.theme.accent;
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = state.level.theme.accent;
+            ctx.beginPath();
+            ctx.arc(0, 0, pickup.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#09111e';
+            ctx.beginPath();
+            ctx.moveTo(-8, -8);
+            ctx.lineTo(6, -8);
+            ctx.lineTo(-2, 0);
+            ctx.lineTo(8, 0);
+            ctx.lineTo(-10, 10);
+            ctx.lineTo(-2, 2);
+            ctx.lineTo(-12, 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          } else if (pickup.type === 'orb' || pickup.type === 'gravityOrb') {
+            const x = worldX(pickup.x);
+            const color = pickup.color === 'blue' || pickup.type === 'gravityOrb' ? '#73a7ff' : '#ffd166';
+            ctx.save();
+            ctx.translate(x, pickup.y);
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 18;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(0, 0, pickup.r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, pickup.r * 0.55, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          } else if (pickup.type === 'pad' || pickup.type === 'gravityPad') {
+            const x = worldX(pickup.x);
+            const color = pickup.color === 'blue' || pickup.type === 'gravityPad' ? '#73a7ff' : '#ffd166';
+            drawGlowRect(x, pickup.y, pickup.w, pickup.h, color, 16, 0.82);
+          }
+        }
+
+        for (const hazard of state.level.hazards) {
+          if (!visible(hazard)) continue;
+          if (hazard.type === 'spike') {
+            const x = worldX(hazard.x);
+            ctx.save();
+            ctx.shadowColor = state.level.theme.hazard;
+            ctx.shadowBlur = 16;
+            ctx.fillStyle = state.level.theme.hazard;
+            ctx.beginPath();
+            if (hazard.dir === 'up') {
+              ctx.moveTo(x, hazard.y + hazard.h);
+              ctx.lineTo(x + hazard.w / 2, hazard.y);
+              ctx.lineTo(x + hazard.w, hazard.y + hazard.h);
+            } else {
+              ctx.moveTo(x, hazard.y);
+              ctx.lineTo(x + hazard.w / 2, hazard.y + hazard.h);
+              ctx.lineTo(x + hazard.w, hazard.y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          } else if (hazard.type === 'saw') {
+            const x = worldX(hazard.x);
+            const angle = state.time * 4;
+            ctx.save();
+            ctx.translate(x, hazard.y);
+            ctx.rotate(angle);
+            ctx.shadowColor = state.level.theme.hazard;
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = state.level.theme.hazard;
+            ctx.beginPath();
+            for (let i = 0; i < 12; i++) {
+              const a = (Math.PI * 2 / 12) * i;
+              const r = i % 2 === 0 ? hazard.r : hazard.r * 0.64;
+              ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#111827';
+            ctx.beginPath();
+            ctx.arc(0, 0, hazard.r * 0.42, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          } else if (hazard.type === 'laser') {
+            const x = worldX(hazard.x);
+            const active = isLaserActive(hazard);
+            const color = active ? state.level.theme.hazard : 'rgba(255,255,255,0.22)';
+            drawGlowRect(x, hazard.y, hazard.w, hazard.h, color, active ? 26 : 8, active ? 0.9 : 0.18);
+          }
+        }
+
+        for (const cp of state.level.checkpoints) {
+          if (!state.practice || !visible(cp)) continue;
+          const x = worldX(cp.x);
+          ctx.save();
+          ctx.globalAlpha = cp.hit ? 0.9 : 0.35;
+          ctx.strokeStyle = cp.hit ? state.level.theme.good : '#ffffff';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(x, cp.y - 70);
+          ctx.lineTo(x, cp.y + 20);
+          ctx.stroke();
+          ctx.fillStyle = cp.hit ? state.level.theme.good : '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(x, cp.y - 70);
+          ctx.lineTo(x + 40, cp.y - 52);
+          ctx.lineTo(x, cp.y - 34);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+
+        for (const message of state.level.messages) {
+          if (!visible(message, 420)) continue;
+          const x = worldX(message.x);
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '700 20px Inter, Segoe UI, sans-serif';
+          ctx.fillText(message.text.toUpperCase(), x, message.y);
+          ctx.restore();
+        }
+
+        if (state.level.finishGate && visible(state.level.finishGate, 520)) {
+          const goal = state.level.finishGate;
+          const x = worldX(goal.x);
+          const bannerY = goal.y + 14;
+          drawGlowRect(x, goal.y + 86, 10, goal.h - 86, theme.good, 18, 0.92);
+          drawGlowRect(x + goal.w - 10, goal.y + 86, 10, goal.h - 86, theme.good, 18, 0.92);
+          ctx.save();
+          ctx.fillStyle = 'rgba(7, 12, 22, 0.92)';
+          ctx.fillRect(x + 8, bannerY, goal.w - 16, 48);
+          ctx.strokeStyle = theme.good;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x + 8, bannerY, goal.w - 16, 48);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 18px Inter, Segoe UI, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('FINISH', x + goal.w / 2, bannerY + 31);
+          ctx.textAlign = 'left';
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+              ctx.fillStyle = (row + col) % 2 === 0 ? '#ffffff' : theme.good;
+              ctx.fillRect(x + 18 + col * 8, goal.y + 94 + row * 8, 8, 8);
+            }
+          }
+          ctx.restore();
+          const trigger = finishTriggerRect();
+          drawGlowRect(worldX(trigger.x), trigger.y, trigger.w, trigger.h, '#ffffff', 18, 0.18);
+        }
+
+        if (state.player && state.player.alive) {
+          const p = state.player;
+          const px = worldX(p.x + p.w / 2);
+          const py = p.y + p.h / 2;
+
+          if (p.form === 'wave' && p.trail.length > 1) {
+            ctx.save();
+            ctx.strokeStyle = theme.accent;
+            ctx.lineWidth = 5;
+            ctx.shadowColor = theme.accent;
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            p.trail.forEach((node, index) => {
+              const tx = worldX(node.x);
+              const ty = node.y;
+              if (index === 0) ctx.moveTo(tx, ty);
+              else ctx.lineTo(tx, ty);
+            });
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          ctx.save();
+          ctx.translate(px, py);
+          if (p.form === 'cube') {
+            ctx.rotate(p.rotation * 0.08);
+            ctx.shadowColor = theme.accent;
+            ctx.shadowBlur = 22;
+            ctx.fillStyle = '#0a1022';
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.strokeStyle = theme.accent;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.fillStyle = theme.accent2;
+            ctx.fillRect(-10, -10, 8, 8);
+            ctx.fillRect(2, -10, 8, 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-12, 6, 24, 5);
+          } else if (p.form === 'robot') {
+            ctx.rotate(p.rotation * 0.08);
+            ctx.shadowColor = '#ffb05c';
+            ctx.shadowBlur = 22;
+            ctx.fillStyle = '#120e18';
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.strokeStyle = '#ffb05c';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.fillStyle = '#ffb05c';
+            ctx.fillRect(-p.w / 2, p.h / 2 - 8, 10, 12);
+            ctx.fillRect(p.w / 2 - 10, p.h / 2 - 8, 10, 12);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-12, -10, 8, 8);
+            ctx.fillRect(4, -10, 8, 8);
+          } else if (p.form === 'ball') {
+            ctx.rotate(p.rotation * 0.06);
+            ctx.shadowColor = '#ffd166';
+            ctx.shadowBlur = 22;
+            ctx.fillStyle = '#101521';
+            ctx.beginPath();
+            ctx.arc(0, 0, p.w * 0.48, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffd166';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-p.w * 0.22, 0);
+            ctx.lineTo(p.w * 0.22, 0);
+            ctx.moveTo(0, -p.h * 0.22);
+            ctx.lineTo(0, p.h * 0.22);
+            ctx.stroke();
+          } else if (p.form === 'ufo') {
+            ctx.rotate(p.rotation);
+            ctx.shadowColor = '#73f2ff';
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#09111e';
+            ctx.beginPath();
+            ctx.ellipse(0, 6, 24, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#73f2ff';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.fillStyle = '#73f2ff';
+            ctx.beginPath();
+            ctx.arc(0, -3, 10, Math.PI, 0);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-14, 4, 8, 4);
+            ctx.fillRect(6, 4, 8, 4);
+          } else if (p.form === 'wave') {
+            ctx.rotate(p.rotation);
+            ctx.shadowColor = '#8fffd8';
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = '#09111e';
+            ctx.beginPath();
+            ctx.moveTo(22, 0);
+            ctx.lineTo(-12, -12);
+            ctx.lineTo(-4, 0);
+            ctx.lineTo(-12, 12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#8fffd8';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.fillStyle = '#8fffd8';
+            ctx.fillRect(-8, -3, 10, 6);
+          } else {
+            ctx.rotate(p.rotation);
+            ctx.shadowColor = theme.accent;
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = '#09111e';
+            ctx.beginPath();
+            ctx.moveTo(24, 0);
+            ctx.lineTo(-18, -16);
+            ctx.lineTo(-8, 0);
+            ctx.lineTo(-18, 16);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = theme.accent;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.fillStyle = theme.accent2;
+            ctx.fillRect(-16, -4, 12, 8);
+            if (input.jumpHeld || state.player.dashTimer > 0) {
+              ctx.fillStyle = theme.hazard;
+              ctx.beginPath();
+              ctx.moveTo(-18, 0);
+              ctx.lineTo(-34 - Math.random() * 10, -9);
+              ctx.lineTo(-32 - Math.random() * 10, 9);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+          ctx.restore();
+        }
+
+        for (const particle of state.particles) {
+          const x = worldX(particle.x);
+          ctx.save();
+          ctx.globalAlpha = particle.life / particle.maxLife;
+          ctx.fillStyle = particle.color;
+          ctx.fillRect(x, particle.y, particle.size, particle.size);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      function renderHUD() {
+        if (!state.level || !state.player) return;
+        const endlessTraining = isEndlessTrainingLevel(state.level);
+        const progress = progressForX(state.player.x) * 100;
+        const distance = distanceForX(state.player.x + state.player.w * 0.5);
+        const splitProgress = ((distance % TRAINING_DISTANCE_SPLIT) / TRAINING_DISTANCE_SPLIT) * 100;
+        els.hudLevelName.textContent = state.level.name;
+        els.hudLevelSub.textContent = endlessTraining
+          ? `${state.level.difficultyLabel} • ${state.deaths} deaths • ${state.shards} coins${state.practice ? ' • practice' : ''} • endless`
+          : `${state.level.difficultyLabel} • ${state.deaths} deaths • ${state.shards}/${state.level.shardCount} coins${state.practice ? ' • practice' : ''}`;
+        els.hudRunData.textContent = fmtTime(state.runTime);
+        els.hudRunSub.textContent = endlessTraining
+          ? `${formLabel(state.player.form)} • ${state.player.dashCharges > 0 ? 'Burst ready' : 'No burst'} • ${formatDistance(distance)}`
+          : `${formLabel(state.player.form)} • ${state.player.dashCharges > 0 ? 'Burst ready' : 'No burst'} • ${Math.floor(progress)}%`;
+        els.hudModeValue.textContent = currentDifficulty().name;
+        els.hudModeSub.textContent = `${formLabel(state.player.form)} • ${state.player.gravitySign === 1 ? 'normal gravity' : 'inverted gravity'} • x${state.player.speedFactor.toFixed(2)}`;
+        els.progressFill.style.width = `${endlessTraining ? splitProgress : progress}%`;
+      }
+
+      function render() {
+        drawBackground();
+        drawWorld();
+        renderHUD();
+      }
+
+      function frame(ts) {
+        if (!state.lastTimestamp) state.lastTimestamp = ts;
+        const rawDt = Math.min(0.033, (ts - state.lastTimestamp) / 1000);
+        state.lastTimestamp = ts;
+        state.accumulator += rawDt;
+        while (state.accumulator >= FIXED_DT) {
+          updateGame(FIXED_DT);
+          input.jumpPressed = false;
+          input.dashPressed = false;
+          state.accumulator -= FIXED_DT;
+        }
+        render();
+        requestAnimationFrame(frame);
+      }
+
+      function refreshMenu() {
+        const totalClears = levels.reduce((sum, level) => sum + (ensureRecord(level.id).clears || 0), 0);
+        const totalCoinsFound = levels.reduce((sum, level) => sum + Math.min(level.shardCount, ensureRecord(level.id).bestShards || 0), 0);
+        const totalCoinsPossible = levels.reduce((sum, level) => sum + level.shardCount, 0);
+
+        const selectedLevel = selectedLevelForSet('campaign');
+        const selectedRecord = ensureRecord(selectedLevel.id);
+        const selectedBestProgress = clamp(selectedRecord.bestProgress || 0, 0, 1);
+        const selectedLastProgress = clamp(
+          selectedRecord.lastOutcome ? (selectedRecord.lastProgress ?? selectedBestProgress) : selectedBestProgress,
+          0,
+          1,
+        );
+
+        const selectedTraining = selectedLevelForSet('training');
+        const selectedTrainingRecord = ensureRecord(selectedTraining.id);
+        const trainingBestProgress = clamp(selectedTrainingRecord.bestProgress || 0, 0, 1);
+        const trainingLastProgress = clamp(
+          selectedTrainingRecord.lastOutcome ? (selectedTrainingRecord.lastProgress ?? trainingBestProgress) : trainingBestProgress,
+          0,
+          1,
+        );
+
+        const previewSet = state.menuScreen === 'training' ? 'training' : 'campaign';
+        const previewLevel = selectedLevelForSet(previewSet);
+        if (state.scene === 'menu' && (!state.level || state.level.id !== previewLevel.id || state.levelSet !== previewSet)) {
+          setMenuPreview(getSelectedIndexForSet(previewSet), previewSet);
+        }
+
+        els.totalClearsStat.textContent = String(totalClears);
+        els.bestShardStat.textContent = `${totalCoinsFound} / ${totalCoinsPossible}`;
+        els.currentLevelStat.textContent = selectedLevel.name;
+        els.currentDiffStat.textContent = currentDifficulty().name;
+        els.practiceToggle.textContent = `Practice mode: ${state.save.practice ? 'On' : 'Off'}`;
+        els.muteToggle.textContent = `Audio: ${state.save.muted ? 'Off' : 'On'}`;
+        els.selectedDifficultyBadge.textContent = `Modifier: ${currentDifficulty().name}`;
+
+        els.homeSelectedStat.textContent = selectedLevel.name;
+        els.homeModifierStat.textContent = currentDifficulty().name;
+        els.homeClearsStat.textContent = String(totalClears);
+        els.homeCoinsStat.textContent = `${totalCoinsFound} / ${totalCoinsPossible}`;
+        els.homePracticeBtn.textContent = `Practice mode: ${state.save.practice ? 'On' : 'Off'}`;
+        els.homeLevelName.textContent = selectedLevel.name;
+        els.homeLevelDesc.textContent = selectedLevel.description;
+        els.homeDifficultyTag.textContent = selectedLevel.difficultyLabel;
+        els.homeModeSummary.textContent = selectedLevel.modeSummary || 'Cube';
+        els.homeBestReach.textContent = `Best reach ${formatProgress(selectedBestProgress)}`;
+        els.homeLastReach.textContent = !selectedRecord.lastOutcome
+          ? 'Last attempt —'
+          : selectedRecord.lastOutcome === 'clear'
+            ? 'Last attempt Finish'
+            : `Last death ${formatProgress(selectedLastProgress)}`;
+        els.homeProgressFill.style.width = `${(selectedBestProgress * 100).toFixed(1)}%`;
+        els.homeProgressMarker.style.left = `${(selectedLastProgress * 100).toFixed(1)}%`;
+        els.homeProgressMarker.style.opacity = selectedRecord.lastOutcome ? '1' : '0';
+        els.homeBestTime.textContent = selectedRecord.bestTime == null ? '—' : fmtTime(selectedRecord.bestTime);
+        els.homeBestCoins.textContent = `${selectedRecord.bestShards || 0} / ${selectedLevel.shardCount}`;
+        els.homeBestDeaths.textContent = selectedRecord.bestDeaths == null ? '—' : String(selectedRecord.bestDeaths);
+        els.browserSelectedInfo.textContent = `Selected: ${selectedLevel.name} • ${selectedLevel.difficultyLabel} • ${selectedLevel.modeSummary || 'Cube'}`;
+        els.homeStageAccent.style.background = `linear-gradient(90deg, ${selectedLevel.theme.accent}, ${selectedLevel.theme.accent2})`;
+        els.homeSpotlight.style.background = `
+          linear-gradient(180deg, ${hexToRgba(selectedLevel.theme.bgA, 0.94)}, ${hexToRgba(selectedLevel.theme.bgB, 0.94)}),
+          radial-gradient(circle at top right, ${hexToRgba(selectedLevel.theme.accent, 0.24)}, transparent 44%),
+          radial-gradient(circle at bottom left, ${hexToRgba(selectedLevel.theme.accent2, 0.18)}, transparent 40%)
+        `;
+        els.homeSpotlight.style.borderColor = hexToRgba(selectedLevel.theme.accent, 0.34);
+
+        const selectedTrainingMetrics = trainingCardMetrics(selectedTrainingRecord);
+        els.trainingDifficultyBadge.textContent = `Modifier: ${currentDifficulty().name}`;
+        els.trainingModeStat.textContent = selectedTraining.modeSummary || formLabel(selectedTraining.focusForm || 'cube');
+        els.trainingBestTimeStat.textContent = selectedTrainingMetrics.bestDistance > 0 ? formatDistance(selectedTrainingMetrics.bestDistance) : '—';
+        els.trainingClearStat.textContent = (selectedTrainingRecord.bestRunTime || 0) > 0 ? fmtTime(selectedTrainingRecord.bestRunTime) : '—';
+        els.trainingBestDeathsStat.textContent = String(selectedTrainingRecord.bestShards || 0);
+        els.trainingDesc.textContent = selectedTraining.description;
+        els.trainingSelectedInfo.textContent = `Selected: ${selectedTraining.name} • Endless training • ${selectedTraining.modeSummary || formLabel(selectedTraining.focusForm || 'cube')}`;
+
+        els.levelGrid.innerHTML = '';
+        levels.forEach((level, index) => {
+          const record = ensureRecord(level.id);
+          const bestProgress = clamp(record.bestProgress || 0, 0, 1);
+          const lastProgress = clamp(
+            record.lastOutcome ? (record.lastProgress ?? bestProgress) : bestProgress,
+            0,
+            1,
+          );
+          const lastLabel = !record.lastOutcome
+            ? 'Last: —'
+            : record.lastOutcome === 'clear'
+              ? 'Last: Finish'
+              : `Last death: ${formatProgress(lastProgress)}`;
+          const bestLabel = `Best reach: ${formatProgress(bestProgress)}`;
+          const markerStyle = record.lastOutcome
+            ? `left:${(lastProgress * 100).toFixed(1)}%;`
+            : 'left:0%; opacity:0;';
+          const fillWidth = `${(bestProgress * 100).toFixed(1)}%`;
+          const card = document.createElement('button');
+          card.className = `level-card ${index === state.selectedLevelIndex ? 'selected' : ''}`;
+          card.type = 'button';
+          card.style.setProperty('--card-accent', level.theme.accent);
+          card.style.setProperty('--card-accent2', level.theme.accent2);
+          card.style.setProperty('--card-glow', hexToRgba(level.theme.accent, 0.18));
+          card.innerHTML = `
+            <div class="level-card-header">
+              <div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                  <span class="theme-dot" style="background:${level.theme.accent}; box-shadow:0 0 16px ${hexToRgba(level.theme.accent, 0.72)};"></span>
+                  <div style="font-size:20px; font-weight:900;">${level.name}</div>
+                </div>
+                <div style="color: var(--muted); font-size: 13px;">BPM ${level.bpm} • Base speed ${level.baseSpeed}</div>
+              </div>
+              <div class="badge">${level.difficultyLabel}</div>
+            </div>
+            <div class="level-desc">${level.description}</div>
+            <div class="level-progress">
+              <div class="level-progress-row">
+                <span>${lastLabel}</span>
+                <span>${bestLabel}</span>
+              </div>
+              <div class="level-progress-track">
+                <div class="level-progress-fill" style="width:${fillWidth}"></div>
+                <div class="level-progress-marker" style="${markerStyle}"></div>
+              </div>
+            </div>
+            <div class="record-row">
+              <span>Best: ${record.bestTime == null ? '—' : fmtTime(record.bestTime)}</span>
+              <span>Coins: ${record.bestShards || 0}/${level.shardCount}</span>
+            </div>
+            <div class="record-row">
+              <span>Modes: ${level.modeSummary || 'Cube'}</span>
+              <span>Clears: ${record.clears || 0}${record.bestDeaths == null ? '' : ` • Deaths: ${record.bestDeaths}`}</span>
+            </div>
+          `;
+          card.addEventListener('click', () => {
+            setSelectedIndexForSet('campaign', index, true);
+            if (state.scene === 'menu') setMenuPreview(index, 'campaign');
+            refreshMenu();
+          });
+          card.addEventListener('dblclick', () => startLevel(index, 'campaign'));
+          els.levelGrid.appendChild(card);
+        });
+
+        els.trainingGrid.innerHTML = '';
+        trainingLevels.forEach((level, index) => {
+          const record = ensureRecord(level.id);
+          const metrics = trainingCardMetrics(record);
+          const lastLabel = !record.lastOutcome
+            ? 'Last run: —'
+            : `Last run: ${formatDistance(metrics.lastDistance)}`;
+          const bestLabel = `Best run: ${formatDistance(metrics.bestDistance)} • Goal ${formatDistance(metrics.goalDistance)}`;
+          const card = document.createElement('button');
+          card.className = `level-card ${index === state.selectedTrainingIndex ? 'selected' : ''}`;
+          card.type = 'button';
+          card.style.setProperty('--card-accent', level.theme.accent);
+          card.style.setProperty('--card-accent2', level.theme.accent2);
+          card.style.setProperty('--card-glow', hexToRgba(level.theme.accent, 0.18));
+          card.innerHTML = `
+            <div class="level-card-header">
+              <div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                  <span class="theme-dot" style="background:${level.theme.accent}; box-shadow:0 0 16px ${hexToRgba(level.theme.accent, 0.72)};"></span>
+                  <div style="font-size:20px; font-weight:900;">${level.name}</div>
+                </div>
+                <div style="color: var(--muted); font-size: 13px;">Endless procedural • BPM ${level.bpm} • Base speed ${level.baseSpeed}</div>
+              </div>
+              <div class="badge">${level.modeSummary || formLabel(level.focusForm || 'cube')}</div>
+            </div>
+            <div class="level-desc">${level.description}</div>
+            <div class="level-progress">
+              <div class="level-progress-row">
+                <span>${lastLabel}</span>
+                <span>${bestLabel}</span>
+              </div>
+              <div class="level-progress-track">
+                <div class="level-progress-fill" style="width:${metrics.fillWidth}"></div>
+                <div class="level-progress-marker" style="${metrics.markerStyle}"></div>
+              </div>
+            </div>
+            <div class="record-row">
+              <span>Best time: ${(record.bestRunTime || 0) > 0 ? fmtTime(record.bestRunTime) : '—'}</span>
+              <span>Best coins: ${record.bestShards || 0}</span>
+            </div>
+            <div class="record-row">
+              <span>Mode: ${level.modeSummary || formLabel(level.focusForm || 'cube')}</span>
+              <span>Double-click to play</span>
+            </div>
+          `;
+          card.addEventListener('click', () => {
+            setSelectedIndexForSet('training', index, true);
+            if (state.scene === 'menu') setMenuPreview(index, 'training');
+            refreshMenu();
+          });
+          card.addEventListener('dblclick', () => startLevel(index, 'training'));
+          els.trainingGrid.appendChild(card);
+        });
+      }
+
+      function refreshDifficultyButtons() {
+        els.difficultyRow.innerHTML = '';
+        Object.values(difficulties).forEach(diff => {
+          const btn = document.createElement('button');
+          btn.className = `pill ${state.save.difficulty === diff.id ? 'active' : ''}`;
+          btn.textContent = diff.name;
+          btn.addEventListener('click', () => {
+            state.save.difficulty = diff.id;
+            persistSave();
+            refreshDifficultyButtons();
+            refreshMenu();
+          });
+          els.difficultyRow.appendChild(btn);
+        });
+      }
+
+      function setPractice(value) {
+        state.save.practice = !!value;
+        persistSave();
+        refreshMenu();
+      }
+
+      function pressJump() {
+        initAudio();
+        if (audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume();
+        input.jumpHeld = true;
+        input.jumpPressed = true;
+      }
+
+      function releaseJump() {
+        input.jumpHeld = false;
+      }
+
+      function pressDash() {
+        initAudio();
+        if (audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume();
+        input.dashHeld = true;
+        input.dashPressed = true;
+      }
+
+      function releaseDash() {
+        input.dashHeld = false;
+      }
+
+      window.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if ([' ', 'arrowup', 'w'].includes(key)) {
+          e.preventDefault();
+          pressJump();
+        } else if (['e', 'shift', 'x'].includes(key)) {
+          e.preventDefault();
+          pressDash();
+        } else if (key === 'r') {
+          e.preventDefault();
+          if (state.scene === 'play' || state.scene === 'result') restartLevel(true);
+        } else if (key === 'p') {
+          e.preventDefault();
+          if (state.scene === 'play') {
+            state.scene = 'paused';
+            els.pauseOverlay.classList.remove('hidden');
+          } else if (state.scene === 'paused') {
+            state.scene = 'play';
+            els.pauseOverlay.classList.add('hidden');
+          }
+        } else if (key === 'escape') {
+          e.preventDefault();
+          if (state.scene === 'menu' && (state.menuScreen === 'browser' || state.menuScreen === 'training')) {
+            returnToMenu('home');
+          } else {
+            returnToMenu(state.returnScreen || 'home');
+          }
+        } else if (key === 'm') {
+          e.preventDefault();
+          setMuted(!state.save.muted);
+        } else if (key === 'enter' && state.scene === 'menu') {
+          e.preventDefault();
+          startLevel(
+            getSelectedIndexForSet(state.menuScreen === 'training' ? 'training' : 'campaign'),
+            state.menuScreen === 'training' ? 'training' : 'campaign',
+          );
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        if ([' ', 'arrowup', 'w'].includes(key)) {
+          e.preventDefault();
+          releaseJump();
+        } else if (['e', 'shift', 'x'].includes(key)) {
+          e.preventDefault();
+          releaseDash();
+        }
+      });
+
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+      canvas.addEventListener('mousedown', (e) => {
+        if (state.scene !== 'play') return;
+        if (e.button === 0) pressJump();
+        if (e.button === 2) pressDash();
+      });
+      canvas.addEventListener('mouseup', (e) => {
+        if (e.button === 0) releaseJump();
+        if (e.button === 2) releaseDash();
+      });
+      canvas.addEventListener('mouseleave', () => {
+        releaseJump();
+        releaseDash();
+      });
+
+      function bindTouchHold(btn, down, up) {
+        ['pointerdown', 'touchstart'].forEach(evt => btn.addEventListener(evt, (e) => {
+          e.preventDefault();
+          btn.classList.add('active');
+          down();
+        }, { passive: false }));
+        ['pointerup', 'pointercancel', 'touchend', 'touchcancel'].forEach(evt => btn.addEventListener(evt, (e) => {
+          e.preventDefault();
+          btn.classList.remove('active');
+          up();
+        }, { passive: false }));
+      }
+
+      bindTouchHold(els.jumpTouchBtn, pressJump, releaseJump);
+      bindTouchHold(els.dashTouchBtn, pressDash, releaseDash);
+
+      els.homePlayBtn.addEventListener('click', () => startLevel(state.selectedLevelIndex, 'campaign'));
+      els.homeBrowseBtn.addEventListener('click', () => returnToMenu('browser'));
+      els.homePracticeBtn.addEventListener('click', () => setPractice(!state.save.practice));
+      els.homeTrainingBtn.addEventListener('click', () => returnToMenu('training'));
+
+      els.playSelectedBtn.addEventListener('click', () => startLevel(state.selectedLevelIndex, 'campaign'));
+      els.playTrainingBtn.addEventListener('click', () => startLevel(state.selectedTrainingIndex, 'training'));
+      els.browserBackBtn.addEventListener('click', () => returnToMenu('home'));
+      els.trainingBackBtn.addEventListener('click', () => returnToMenu('home'));
+      els.trainingToolbarBackBtn.addEventListener('click', () => returnToMenu('home'));
+      els.resetSaveBtn.addEventListener('click', () => {
+        state.save = defaultSave();
+        state.selectedLevelIndex = 0;
+        state.selectedTrainingIndex = 0;
+        persistSave();
+        refreshDifficultyButtons();
+        returnToMenu(state.menuScreen);
+      });
+      els.practiceToggle.addEventListener('click', () => setPractice(!state.save.practice));
+      els.muteToggle.addEventListener('click', () => setMuted(!state.save.muted));
+      els.pauseBtn.addEventListener('click', () => {
+        if (state.scene === 'play') {
+          state.scene = 'paused';
+          els.pauseOverlay.classList.remove('hidden');
+        }
+      });
+      els.menuBtn.addEventListener('click', () => returnToMenu(state.returnScreen || 'home'));
+      els.resumeBtn.addEventListener('click', () => {
+        state.scene = 'play';
+        els.pauseOverlay.classList.add('hidden');
+      });
+      els.restartBtn.addEventListener('click', () => restartLevel(true));
+      els.pauseMenuBtn.addEventListener('click', () => returnToMenu(state.returnScreen || 'home'));
+      els.replayBtn.addEventListener('click', () => startLevel(getSelectedIndexForSet(state.levelSet), state.levelSet));
+      els.resultMenuBtn.addEventListener('click', () => returnToMenu(state.returnScreen || 'home'));
+      els.nextLevelBtn.addEventListener('click', () => {
+        const list = getLevelCollection(state.levelSet);
+        const currentIndex = getSelectedIndexForSet(state.levelSet);
+        const next = currentIndex < list.length - 1 ? currentIndex + 1 : currentIndex;
+        startLevel(next, state.levelSet);
+      });
+
+      refreshDifficultyButtons();
+      returnToMenu('home');
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>

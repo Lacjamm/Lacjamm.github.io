@@ -57,6 +57,8 @@
     .games { display: grid; gap: 24px; padding-bottom: 40px; }
     @media (min-width: 720px) { .games { grid-template-columns: 1fr 1fr; } }
 
+    .section-title { grid-column: 1 / -1; font-size: 1.6rem; margin-top: 24px; }
+
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -181,6 +183,39 @@
         <a class="btn btn-src" href="https://github.com/Lacjamm/godot.island">Source on GitHub</a>
       </div>
     </section>
+    <h2 class="section-title">Other</h2>
+
+    <section class="card">
+      <span class="card-emoji">🍬</span>
+      <h2>Snack Dash</h2>
+      <p>Dash through a colourful neon arcade challenge, collect snacks, and keep your run going.</p>
+      <div class="tags"><span class="tag">Arcade</span><span class="tag">Browser Game</span></div>
+      <div class="actions"><a class="btn btn-play" href="./snack-dash.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🏗️</span>
+      <h2>Ruin Engine</h2>
+      <p>Experiment with destruction in a 3D sandbox full of buildings, vehicles, and chaos.</p>
+      <div class="tags"><span class="tag">3D Sandbox</span><span class="tag">Destruction</span></div>
+      <div class="actions"><a class="btn btn-play" href="./ruin-engine.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">⚡</span>
+      <h2>Neon Pulse</h2>
+      <p>Jump into a fast, glowing action game and push through its neon levels.</p>
+      <div class="tags"><span class="tag">Action</span><span class="tag">Neon</span></div>
+      <div class="actions"><a class="btn btn-play" href="./neon-pulse.html">▶ Play now</a></div>
+    </section>
+
+    <section class="card">
+      <span class="card-emoji">🎯</span>
+      <h2>Dummy Mayhem</h2>
+      <p>Cause havoc in a playful sandbox built around targets, impacts, and mayhem.</p>
+      <div class="tags"><span class="tag">Sandbox</span><span class="tag">Action</span></div>
+      <div class="actions"><a class="btn btn-play" href="./dummy-mayhem.html">▶ Play now</a></div>
+    </section>
   </main>
 
   <footer class="wrap">
@@ -188,3 +223,4 @@
   </footer>
 </body>
 </html>
+
